@@ -20,7 +20,7 @@
               peach: '#C7886B',     // Терракота
               dark: '#1F1713',      // Темный шоколад
               brown: '#604539',     // Шоколадно-коричневый
-              cream: '#FFECD2',     // Кремово-бежевый
+              cream: '#FFECD2',     // -бежевый
               creamLight: '#FFF8EE',// Очень светлый бежевый
             }
           }
@@ -625,7 +625,7 @@
           ? `<span class="bg-brand-peach/10 text-brand-peach text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Подразделов: ${subcategoriesCount}</span>`
           : '';
 
-        // Заголовок категории со сворачиванием по тапу
+        // Заголовок категории со сворачиванием по тапу (ID категории визуально убраны из разметки)
         categoryCard.innerHTML = `
           <div 
             onclick="toggleCategoryCollapse('${category.id}')"
@@ -635,7 +635,6 @@
               <div class="flex items-center gap-2">
                 <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-brand-peach flex-shrink-0"></i>
                 <h2 class="text-xs font-black text-brand-dark uppercase tracking-wider">${category.title}</h2>
-                <span class="font-mono text-[9px] bg-brand-dark/10 text-brand-dark px-1.5 py-0.2 rounded font-bold">${category.id}</span>
               </div>
               <div class="flex items-center gap-1.5 mt-0.5 ml-6">
                 <span class="text-[9px] font-bold text-brand-brown/60 uppercase">Позиций: ${matchedItems.length}</span>
@@ -656,21 +655,17 @@
           <!-- Разворачиваемое тело категории -->
           <div class="${isExpanded ? 'block' : 'hidden'}">
             
-            <!-- Панель управления в начале категории -->
-            <div class="bg-brand-creamLight/50 px-4 py-2.5 border-b border-brand-brown/5 flex flex-wrap items-center justify-between gap-3">
-              <div class="flex items-center gap-1.5">
-                <button onclick="openSubcategoriesModal('${category.id}')" class="flex items-center gap-1 bg-white hover:bg-brand-cream border border-brand-brown/20 text-brand-brown px-3 py-1.5 rounded-xl text-[10px] font-black transition shadow-sm">
-                  <i data-lucide="folder-tree" class="w-3.5 h-3.5 text-brand-peach"></i>
-                  <span>Настройка подразделов</span>
-                </button>
-              </div>
+            <!-- Панель управления в начале категории: Две равновеликие и одинаковые кнопки на всю ширину страницы -->
+            <div class="bg-brand-creamLight/50 px-4 py-2.5 border-b border-brand-brown/5 grid grid-cols-2 gap-2 w-full">
+              <button onclick="openSubcategoriesModal('${category.id}')" class="w-full h-10 flex items-center justify-center gap-1.5 bg-white hover:bg-brand-cream border border-brand-brown/20 text-brand-brown rounded-xl text-[10px] font-black transition shadow-sm">
+                <i data-lucide="folder-tree" class="w-3.5 h-3.5 text-brand-peach flex-shrink-0"></i>
+                <span>Подразделы</span>
+              </button>
               
-              <div>
-                <button onclick="openItemModal('${category.id}', null)" class="bg-brand-peach hover:bg-brand-brown text-white text-[10px] font-black px-4 py-1.5 rounded-xl transition flex items-center justify-center gap-1 shadow-md">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                  <span>Добавить позицию</span>
-                </button>
-              </div>
+              <button onclick="openItemModal('${category.id}', null)" class="w-full h-10 flex items-center justify-center gap-1.5 bg-brand-peach hover:bg-brand-brown text-white rounded-xl text-[10px] font-black transition shadow-md">
+                <i data-lucide="plus" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                <span>Добавить позицию</span>
+              </button>
             </div>
 
             <!-- Список элементов -->
@@ -904,6 +899,7 @@
       renderSubcategoriesList();
     }
 
+    // Удаление подразделов (косвенные элементы развязываются)
     function deleteSubcategory(subId) {
       if (confirm('Удалить подраздел? Позиции меню лишатся связи с ним.')) {
         const category = menuData.categories.find(c => c.id === activeSubcatCategoryId);
