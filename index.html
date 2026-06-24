@@ -100,7 +100,7 @@
           </div>
         </div>
 
-        <!-- Добавить новую категорию -->
+        <!-- Кнопка добавления новой категории скрыта по логике структуры, но доступна при разблокировке -->
         <button id="addCategoryBtn" disabled onclick="openCategoryModal()" class="w-full py-4 border-2 border-dashed border-brand-peach/20 bg-white/10 text-brand-peach/40 font-extrabold text-xs rounded-2xl cursor-not-allowed transition flex items-center justify-center gap-2">
           <i data-lucide="plus" class="w-4 h-4"></i>
           <span>ДОБАВИТЬ НОВУЮ КАТЕГОРИЮ МЕНЮ</span>
@@ -199,7 +199,7 @@
         <input type="hidden" id="formCategoryId">
         <input type="hidden" id="formItemId">
 
-        <!-- 1. Виртуальный подраздел (Subcategory) - Позиционирован самым первым -->
+        <!-- Поле 1: Виртуальный подраздел (Subcategory) - Позиционирован самым первым -->
         <div id="subcategorySelectorWrapper" class="hidden">
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Виртуальный подраздел (Subcategory)</label>
           <select id="itemSubcategoryInput" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
@@ -207,19 +207,19 @@
           </select>
         </div>
 
-        <!-- 2. Название -->
+        <!-- Поле 2: Название -->
         <div>
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Название блюда / напитка</label>
           <input type="text" id="itemNameInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-sm">
         </div>
 
-        <!-- 3. Описание -->
+        <!-- Поле 3: Описание -->
         <div>
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Описание / Объем / Вес</label>
           <input type="text" id="itemDescriptionInput" placeholder="Пример: Крым, белое брют, 750 мл" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white text-xs">
         </div>
 
-        <!-- 4. Цена и статус доступности -->
+        <!-- Поле 4: Цена и статус доступности -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Цена (в рублях)</label>
@@ -235,21 +235,22 @@
           </div>
         </div>
 
-        <!-- 5. Параметры алкоголя и порций вместе со складом и порциями -->
+        <!-- Поле 5: Параметры алкоголя и порций вместе со складом и порциями (только для алкоголя) -->
         <div id="alcoholSpecsWrapper" class="bg-brand-peach/10 border border-brand-peach/30 p-4 rounded-2xl space-y-3 hidden">
           <div class="flex items-center gap-1.5 border-b border-brand-peach/20 pb-1.5">
             <i data-lucide="wine" class="w-4 h-4 text-brand-peach"></i>
             <h4 class="text-[10px] font-black text-brand-brown uppercase tracking-wide">Параметры алкоголя & порций</h4>
           </div>
 
+          <!-- Изменен быстрый шаблон: Крепкий убран, сделан красивый выпадающий список (Dropdown Select) -->
           <div>
-            <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон (Автозаполнение порций):</label>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              <button type="button" onclick="applyAlcoholPreset('glass')" class="bg-white hover:bg-brand-peach hover:text-white border border-brand-peach/20 py-1 px-1.5 rounded-lg text-[9px] font-black transition">БОКАЛ (1 порция)</button>
-              <button type="button" onclick="applyAlcoholPreset('sparkling')" class="bg-white hover:bg-brand-peach hover:text-white border border-brand-peach/20 py-1 px-1.5 rounded-lg text-[9px] font-black transition">ИГРИСТОЕ (Бут = 6 порц.)</button>
-              <button type="button" onclick="applyAlcoholPreset('still')" class="bg-white hover:bg-brand-peach hover:text-white border border-brand-peach/20 py-1 px-1.5 rounded-lg text-[9px] font-black transition">ТИХОЕ (Бут = 5 порц.)</button>
-              <button type="button" onclick="applyAlcoholPreset('strong')" class="bg-white hover:bg-brand-peach hover:text-white border border-brand-peach/20 py-1 px-1.5 rounded-lg text-[9px] font-black transition">КРЕПКОЕ (Бут = 10 порц.)</button>
-            </div>
+            <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон порций:</label>
+            <select id="alcoholPresetSelect" onchange="applyAlcoholPresetDropdown(this.value)" class="w-full px-3 py-2 rounded-lg border border-brand-peach/30 bg-white font-bold text-xs focus:ring-1 focus:ring-brand-peach focus:outline-none text-brand-dark">
+              <option value="">-- Выберите шаблон порций --</option>
+              <option value="glass">Бокал (1 порция)</option>
+              <option value="sparkling">Игристое вино (Бутылка = 6 порций)</option>
+              <option value="still">Тихое вино (Бутылка = 5 порций)</option>
+            </select>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -274,11 +275,14 @@
           </div>
         </div>
 
-        <!-- 6. Уникальный ID - Перемещен в самый низ формы -->
+        <!-- Поле 6: Уникальный ID - Находится в самом низу формы -->
         <div class="pt-2 border-t border-brand-brown/5">
-          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Уникальный ID (латиница)</label>
+          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1 flex items-center justify-between">
+            <span>Уникальный ID (латиница)</span>
+            <span class="text-[9px] text-brand-peach font-bold" id="idAutoGeneratedBadge">Автогенерация включена</span>
+          </label>
           <input type="text" id="itemIdInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono font-bold">
-          <p class="text-[9px] text-brand-brown/50 mt-1">Пример: alc_21, bake_2, des_12. ID нельзя отредактировать после создания.</p>
+          <p class="text-[9px] text-brand-brown/50 mt-1">Пример: alc_21, bake_2, des_12. ID нельзя редактировать после сохранения.</p>
         </div>
 
         <div class="flex gap-2 pt-3 border-t border-brand-brown/15">
@@ -376,13 +380,17 @@
 
     // --- Состояние приложения ---
     let menuData = { categories: [] };
-    let githubSha = null; // Будет загружено из API для коммитов
+    let githubSha = null;
     let isSaving = false;
+
+    // Состояние свернутости/развернутости разделов (Аккордеон: изначально открыта пустая строка, т.е. все свернуты)
+    let activeExpandedCategoryId = '';
 
     // --- Инициализация при старте ---
     window.onload = function() {
       initTokenUI();
       loadMenuFromGitHub();
+      setupFormAutoIdListeners();
       lucide.createIcons();
     };
 
@@ -418,7 +426,6 @@
       }
       closeTokenModal();
       initTokenUI();
-      // Перезагружаем файл с обновленной авторизацией
       loadMenuFromGitHub();
     }
 
@@ -453,9 +460,8 @@
           throw new Error(`Ошибка HTTP: ${response.status}`);
         }
         const data = await response.json();
-        githubSha = data.sha; // Запоминаем SHA файла для будущей перезаписи
+        githubSha = data.sha;
 
-        // Раскодируем Base64 контент, пришедший от GitHub (поддерживая кириллицу UTF-8)
         const utf8String = atob(data.content.replace(/\s/g, ''));
         const decodedContent = decodeURIComponent(escape(utf8String));
         
@@ -503,7 +509,6 @@
       const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
       const updatedJsonString = JSON.stringify(menuData, null, 2);
 
-      // Корректно кодируем UTF-8 в Base64 для передачи кириллицы
       const base64Content = btoa(unescape(encodeURIComponent(updatedJsonString)));
 
       const body = {
@@ -529,7 +534,7 @@
         }
 
         const resData = await response.json();
-        githubSha = resData.content.sha; // Обновляем SHA для последующих коммитов
+        githubSha = resData.content.sha;
 
         updateSyncIndicator('green', 'Все изменения сохранены в GitHub');
       } catch (e) {
@@ -560,13 +565,22 @@
       document.getElementById('statSubcategories').innerText = subcatCount;
       document.getElementById('statItems').innerText = itemCount;
 
-      // Автоматическая фоновая отправка коммита при изменениях
       saveMenuToGitHub();
     }
 
     // Очистить строку поиска
     function clearSearch() {
       document.getElementById('searchQuery').value = '';
+      renderMenuTree();
+    }
+
+    // Переключение сворачивания раздела
+    function toggleCategoryCollapse(catId) {
+      if (activeExpandedCategoryId === catId) {
+        activeExpandedCategoryId = ''; // Сворачиваем текущий
+      } else {
+        activeExpandedCategoryId = catId; // Разворачиваем выбранный, все остальные автоматически свернутся
+      }
       renderMenuTree();
     }
 
@@ -600,6 +614,8 @@
           return;
         }
 
+        const isExpanded = category.id === activeExpandedCategoryId || (query !== ''); // При поиске принудительно разворачиваем
+
         const categoryCard = document.createElement('div');
         categoryCard.className = "bg-white rounded-2xl border border-brand-brown/10 shadow-sm overflow-hidden animate-slide-in";
         
@@ -608,24 +624,25 @@
           ? `<span class="bg-brand-peach/10 text-brand-peach text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Подразделов: ${subcategoriesCount}</span>`
           : '';
 
+        // Заголовок категории с обработчиком сворачивания/разворачивания по тапу
         categoryCard.innerHTML = `
-          <div class="bg-brand-brown/5 px-4 py-3.5 border-b border-brand-brown/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div 
+            onclick="toggleCategoryCollapse('${category.id}')"
+            class="bg-brand-brown/5 px-4 py-3.5 border-b border-brand-brown/10 flex justify-between items-center gap-2 cursor-pointer hover:bg-brand-brown/10 transition"
+          >
             <div>
               <div class="flex items-center gap-2">
+                <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-brand-peach"></i>
                 <h2 class="text-xs font-black text-brand-dark uppercase tracking-wider">${category.title}</h2>
                 <span class="font-mono text-[9px] bg-brand-dark/10 text-brand-dark px-1.5 py-0.2 rounded font-bold">${category.id}</span>
               </div>
-              <div class="flex items-center gap-1.5 mt-1">
+              <div class="flex items-center gap-1.5 mt-1 ml-6">
                 <span class="text-[9px] font-bold text-brand-brown/60 uppercase">Позиций: ${matchedItems.length}</span>
                 ${subcatsBadgeMarkup}
               </div>
             </div>
             
-            <div class="flex items-center gap-1.5 w-full sm:w-auto self-stretch sm:self-auto justify-end">
-              <button onclick="openSubcategoriesModal('${category.id}')" class="flex-1 sm:flex-initial flex items-center justify-center gap-1 bg-white hover:bg-brand-cream border border-brand-brown/20 text-brand-brown px-2.5 py-1.5 rounded-lg text-[10px] font-black transition">
-                <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i>
-                <span>Подразделы</span>
-              </button>
+            <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
               <button onclick="openCategoryModal('${category.id}')" class="bg-white hover:bg-brand-cream border border-brand-brown/20 text-brand-brown p-1.5 rounded-lg transition" title="Редактировать категорию">
                 <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
               </button>
@@ -635,17 +652,33 @@
             </div>
           </div>
           
-          <div class="p-4 space-y-2">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="items-container-${category.id}">
-              <!-- Блюда -->
-            </div>
+          <!-- Разворачиваемое тело категории -->
+          <div class="${isExpanded ? 'block' : 'hidden'}">
             
-            <div class="pt-2 border-t border-brand-brown/5 flex justify-end">
-              <button onclick="openItemModal('${category.id}', null)" class="w-full sm:w-auto bg-brand-peach hover:bg-brand-brown text-white text-[10px] font-black px-4 py-2 rounded-xl transition flex items-center justify-center gap-1">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>Добавить позицию</span>
-              </button>
+            <!-- Панель управления и КНОПКА ДОБАВЛЕНИЯ ПОЗИЦИИ в начале категории -->
+            <div class="bg-brand-creamLight/50 px-4 py-3 border-b border-brand-brown/5 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-1.5">
+                <button onclick="openSubcategoriesModal('${category.id}')" class="flex items-center gap-1 bg-white hover:bg-brand-cream border border-brand-brown/20 text-brand-brown px-3 py-2 rounded-xl text-[10px] font-black transition shadow-sm">
+                  <i data-lucide="folder-tree" class="w-3.5 h-3.5 text-brand-peach"></i>
+                  <span>Настройка подразделов</span>
+                </button>
+              </div>
+              
+              <div>
+                <button onclick="openItemModal('${category.id}', null)" class="bg-brand-peach hover:bg-brand-brown text-white text-[10px] font-black px-4 py-2 rounded-xl transition flex items-center justify-center gap-1 shadow-md">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Добавить позицию</span>
+                </button>
+              </div>
             </div>
+
+            <!-- Список элементов -->
+            <div class="p-4 space-y-2">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="items-container-${category.id}">
+                <!-- Блюда вставляются сюда -->
+              </div>
+            </div>
+
           </div>
         `;
 
@@ -924,16 +957,22 @@
       if (catId === 'alcohol') {
         alcSpecs.classList.remove('hidden');
         populateStockLinkIdDatalist();
+        document.getElementById('alcoholPresetSelect').value = '';
       } else {
         alcSpecs.classList.add('hidden');
       }
 
+      const idBadge = document.getElementById('idAutoGeneratedBadge');
+
       if (itemId) {
+        // Режим изменения
         const item = category.items.find(i => i.id === itemId);
         document.getElementById('itemModalTitle').innerText = `Редактировать: ${item.name}`;
         
         document.getElementById('itemIdInput').value = item.id;
-        document.getElementById('itemIdInput').disabled = true;
+        document.getElementById('itemIdInput').disabled = true; // При изменении менять ID нельзя
+        idBadge.innerText = "Редактирование ID отключено";
+        idBadge.className = "text-[9px] text-brand-brown/50 font-bold";
 
         document.getElementById('itemNameInput').value = item.name;
         document.getElementById('itemPriceInput').value = item.price;
@@ -947,14 +986,35 @@
         if (catId === 'alcohol') {
           document.getElementById('itemPortionWeightInput').value = item.portionWeight !== undefined ? item.portionWeight : 1;
           document.getElementById('itemStockLinkIdInput').value = item.stockLinkId || '';
+          
+          // Попытка угадать шаблон на основе portionWeight и subcategory
+          const pWeight = item.portionWeight;
+          const sub = item.subcategory;
+          const presetSelect = document.getElementById('alcoholPresetSelect');
+          if (pWeight === 1) presetSelect.value = 'glass';
+          else if (pWeight === 6 && sub === 'sparkling') presetSelect.value = 'sparkling';
+          else if (pWeight === 5 && sub === 'still') presetSelect.value = 'still';
+          else presetSelect.value = '';
         }
       } else {
+        // Режим добавления новой позиции
         document.getElementById('itemModalTitle').innerText = `Новая позиция в "${category.title}"`;
         document.getElementById('itemIdInput').value = '';
         document.getElementById('itemIdInput').disabled = false;
+        idBadge.innerText = "Автогенерация включена";
+        idBadge.className = "text-[9px] text-green-600 font-bold";
+
         document.getElementById('itemAvailableInput').value = "true";
         document.getElementById('itemPortionWeightInput').value = 1;
         document.getElementById('itemStockLinkIdInput').value = '';
+        
+        // Предустанавливаем подраздел по умолчанию, если открыт первый
+        if (category.subcategories && category.subcategories.length > 0) {
+          subcatSelect.value = category.subcategories[0].id;
+        }
+
+        // Попробуем сгенерировать ID для пустой формы на основе выбранных параметров по умолчанию
+        setTimeout(tryAutoGenerateId, 50);
       }
 
       modal.classList.remove('hidden');
@@ -983,7 +1043,108 @@
       });
     }
 
-    function applyAlcoholPreset(type) {
+    // --- Интегрированные события для живой автогенерации уникальных ID ---
+    function setupFormAutoIdListeners() {
+      const fields = ['itemNameInput', 'itemSubcategoryInput', 'alcoholPresetSelect'];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', tryAutoGenerateId);
+          el.addEventListener('change', tryAutoGenerateId);
+        }
+      });
+    }
+
+    // Алгоритм поиска свободного ID по инкременту внутри заданной маски
+    function getNextIdForPrefix(prefix, isAlcoholSpecial = false) {
+      let maxNum = -1;
+      let pattern = new RegExp("^" + prefix + "(\\d+)$");
+      
+      menuData.categories.forEach(cat => {
+        if (cat.items) {
+          cat.items.forEach(item => {
+            let match = item.id.match(pattern);
+            if (match) {
+              let num = parseInt(match[1], 10);
+              if (num > maxNum) {
+                maxNum = num;
+              }
+            }
+          });
+        }
+      });
+
+      if (maxNum === -1) {
+        // Если ID по шаблону нет, берем дефолтный старт
+        if (isAlcoholSpecial) {
+          return prefix + "0"; // Например alc_10 + 0 = alc_100
+        } else {
+          return prefix + "1"; // Например des_ + 1 = des_1
+        }
+      } else {
+        return prefix + (maxNum + 1);
+      }
+    }
+
+    // Попытка автогенерации ID в реальном времени при вводе
+    function tryAutoGenerateId() {
+      const editItemId = document.getElementById('formItemId').value;
+      if (editItemId) return; // Не перезаписываем существующие ID при редактировании
+
+      const catId = document.getElementById('formCategoryId').value;
+      const subcatVal = document.getElementById('itemSubcategoryInput').value;
+      const nameVal = document.getElementById('itemNameInput').value.trim();
+      const idInput = document.getElementById('itemIdInput');
+
+      let generatedId = '';
+
+      if (catId === 'alcohol') {
+        const preset = document.getElementById('alcoholPresetSelect').value;
+        
+        if (subcatVal === 'sparkling') {
+          if (preset === 'glass') {
+            generatedId = getNextIdForPrefix('alc_10', true); // Диапазон alc_100+
+          } else {
+            generatedId = getNextIdForPrefix('alc_30', true); // Диапазон alc_300+
+          }
+        } else if (subcatVal === 'still') {
+          if (preset === 'glass') {
+            generatedId = getNextIdForPrefix('alc_20', true); // Диапазон alc_200+
+          } else {
+            generatedId = getNextIdForPrefix('alc_40', true); // Диапазон alc_400+
+          }
+        } else if (subcatVal === 'strong') {
+          generatedId = getNextIdForPrefix('alc_50', true); // Диапазон alc_500+
+        } else {
+          generatedId = getNextIdForPrefix('alc_', false);
+        }
+      } else if (catId === 'non-alcohol') {
+        if (subcatVal === 'hot') {
+          generatedId = getNextIdForPrefix('hot_', false);
+        } else if (subcatVal === 'juices_water') {
+          generatedId = getNextIdForPrefix('nalc_', false);
+        } else {
+          generatedId = getNextIdForPrefix('nalc_', false);
+        }
+      } else if (catId === 'snacks') {
+        generatedId = getNextIdForPrefix('snack_', false);
+      } else if (catId === 'salads') {
+        generatedId = getNextIdForPrefix('salad_', false);
+      } else if (catId === 'bakery') {
+        generatedId = getNextIdForPrefix('bake_', false);
+      } else if (catId === 'desserts') {
+        generatedId = getNextIdForPrefix('des_', false);
+      } else {
+        generatedId = catId + '_' + Date.now().toString().slice(-4);
+      }
+
+      if (generatedId) {
+        idInput.value = generatedId;
+      }
+    }
+
+    // Быстрый шаблон порций алкоголя на основе выпадающего списка
+    function applyAlcoholPresetDropdown(presetType) {
       const nameInput = document.getElementById('itemNameInput');
       const portionInput = document.getElementById('itemPortionWeightInput');
       const subSelect = document.getElementById('itemSubcategoryInput');
@@ -993,26 +1154,20 @@
       let translitName = transliterate(rawName).toLowerCase().replace(/[^a-z0-9]/g, '_');
       let predictedStockId = translitName ? `stock_${translitName}` : '';
 
-      if (type === 'glass') {
+      if (presetType === 'glass') {
         portionInput.value = 1;
         if (nameInput.value && !nameInput.value.includes('БОКАЛ') && !nameInput.value.includes('ПОРЦИЯ')) {
           nameInput.value = `${rawName}, БОКАЛ`;
         }
-      } else if (type === 'sparkling') {
+      } else if (presetType === 'sparkling') {
         portionInput.value = 6; 
         subSelect.value = 'sparkling';
         if (nameInput.value && !nameInput.value.includes('БУТЫЛКА')) {
           nameInput.value = `${rawName}, БУТЫЛКА`;
         }
-      } else if (type === 'still') {
+      } else if (presetType === 'still') {
         portionInput.value = 5; 
         subSelect.value = 'still';
-        if (nameInput.value && !nameInput.value.includes('БУТЫЛКА')) {
-          nameInput.value = `${rawName}, БУТЫЛКА`;
-        }
-      } else if (type === 'strong') {
-        portionInput.value = 10; 
-        subSelect.value = 'strong';
         if (nameInput.value && !nameInput.value.includes('БУТЫЛКА')) {
           nameInput.value = `${rawName}, БУТЫЛКА`;
         }
@@ -1021,6 +1176,9 @@
       if (predictedStockId && !stockLinkIdInput.value) {
         stockLinkIdInput.value = predictedStockId;
       }
+
+      // После смены пресета запускаем перерасчет ID
+      tryAutoGenerateId();
     }
 
     function saveItem(event) {
