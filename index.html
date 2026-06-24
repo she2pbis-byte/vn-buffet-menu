@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>КОНСТРУКТОР МЕНЮ | БУФЕТ В КЗЦ</title>
+  <title>РЕДАКТОР МЕНЮ | БУФЕТ В КЗЦ</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -50,24 +50,22 @@
           <i data-lucide="sliders" class="w-6 h-6"></i>
         </div>
         <div>
-          <h1 class="text-xl font-extrabold tracking-tight uppercase">Управление меню</h1>
-          <p class="text-xs text-brand-peach font-bold">Буфет в КЗЦ &bull; Редактор menu.json</p>
+          <h1 class="text-xl font-extrabold tracking-tight uppercase">РЕДАКТОР МЕНЮ</h1>
         </div>
       </div>
       
-      <!-- Панель импорта/экспорта -->
-      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-        <!-- Загрузка файла -->
-        <label class="flex-1 md:flex-initial flex items-center justify-center gap-2 bg-brand-brown hover:bg-brand-peach text-brand-cream px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer transition shadow">
-          <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-          <span>Загрузить menu.json</span>
-          <input type="file" id="importFile" accept=".json" class="hidden" onchange="handleFileImport(event)">
-        </label>
+      <!-- Статус синхронизации и управление токеном -->
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+        <!-- Индикатор статуса синхронизации -->
+        <div id="syncStatus" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-brown/40 border border-brand-peach/30 text-xs font-bold text-brand-cream">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" id="syncIndicator"></span>
+          <span id="syncText">Подключение к GitHub...</span>
+        </div>
         
-        <!-- Скачивание файла -->
-        <button onclick="exportMenuJson()" class="flex-1 md:flex-initial flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow">
-          <i data-lucide="download" class="w-4 h-4"></i>
-          <span>Скачать готовый JSON</span>
+        <!-- Кнопка авторизации в GitHub -->
+        <button onclick="openTokenModal()" class="flex items-center justify-center gap-2 bg-brand-brown hover:bg-brand-peach text-brand-cream px-4 py-2.5 rounded-xl text-xs font-bold transition shadow">
+          <i data-lucide="key" class="w-4 h-4"></i>
+          <span id="tokenBtnText">Настроить токен GitHub</span>
         </button>
       </div>
     </header>
@@ -95,11 +93,15 @@
 
         <!-- Дерево категорий -->
         <div id="menuTreeContainer" class="space-y-4">
-          <!-- Рендерится динамически -->
+          <!-- Загрузочная заглушка до подтягивания данных с GitHub -->
+          <div class="text-center py-20 bg-white rounded-3xl border border-brand-brown/10 shadow-sm space-y-3">
+            <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-brand-peach mx-auto"></div>
+            <p class="text-xs text-brand-brown font-bold">Загрузка файла menu.json из репозитория...</p>
+          </div>
         </div>
 
         <!-- Добавить новую категорию -->
-        <button onclick="openCategoryModal()" class="w-full py-4 border-2 border-dashed border-brand-peach/40 hover:border-brand-peach bg-white/40 hover:bg-white text-brand-peach font-extrabold text-xs rounded-2xl transition flex items-center justify-center gap-2">
+        <button id="addCategoryBtn" disabled onclick="openCategoryModal()" class="w-full py-4 border-2 border-dashed border-brand-peach/20 bg-white/10 text-brand-peach/40 font-extrabold text-xs rounded-2xl cursor-not-allowed transition flex items-center justify-center gap-2">
           <i data-lucide="plus" class="w-4 h-4"></i>
           <span>ДОБАВИТЬ НОВУЮ КАТЕГОРИЮ МЕНЮ</span>
         </button>
@@ -148,7 +150,7 @@
             class="w-full h-80 bg-transparent text-xs font-mono text-emerald-400/90 focus:outline-none resize-none no-scrollbar"
           ></textarea>
           <div class="text-[9px] text-brand-cream/40 text-center">
-            Вы всегда можете скопировать этот код напрямую в файл menu.json в вашем GitHub-репозитории.
+            Все изменения автоматически отправляются коммитом в репозиторий vn-buffet.
           </div>
         </div>
 
@@ -159,6 +161,32 @@
 
   <!-- ==================== МОДАЛЬНЫЕ ОКНА РЕДАКТИРОВАНИЯ ==================== -->
 
+  <!-- Настройка GitHub Токена (PAT) -->
+  <div id="tokenModal" class="fixed inset-0 bg-brand-dark/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-brand-cream border-2 border-brand-brown p-6 rounded-3xl w-full max-w-md shadow-2xl space-y-4 animate-slide-in">
+      <div class="flex justify-between items-center border-b border-brand-brown/15 pb-2">
+        <h3 class="text-sm font-black text-brand-dark uppercase tracking-wider">Токен авторизации GitHub</h3>
+        <button onclick="closeTokenModal()" class="text-brand-brown hover:text-brand-dark"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="text-xs space-y-3">
+        <p class="text-brand-brown leading-relaxed">Для автоматической записи измененного файла <strong>menu.json</strong> в репозиторий требуется GitHub Personal Access Token (PAT) с правами на запись (права <strong>repo</strong> или доступ к контенту репозитория).</p>
+        <div>
+          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">GitHub Personal Access Token</label>
+          <input type="password" id="githubTokenInput" placeholder="ghp_..." class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono text-xs">
+        </div>
+        <p class="text-[10px] text-brand-brown/60">Ваш токен сохраняется локально только в вашем собственном браузере (в localStorage) и передается только напрямую на официальный сервер api.github.com.</p>
+      </div>
+      <div class="flex gap-2 pt-2 border-t border-brand-brown/15">
+        <button onclick="saveToken()" class="flex-1 bg-brand-peach hover:bg-brand-brown text-white font-extrabold py-3 rounded-xl transition text-xs">
+          Сохранить токен
+        </button>
+        <button onclick="closeTokenModal()" class="px-4 py-3 bg-white border border-brand-brown/20 text-brand-brown font-bold rounded-xl transition hover:bg-white/50 text-xs">
+          Отмена
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 1. Модалка элемента (блюда/напитка) -->
   <div id="itemModal" class="fixed inset-0 bg-brand-dark/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-brand-cream border-2 border-brand-brown p-6 rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto space-y-4 animate-slide-in">
@@ -168,19 +196,16 @@
       </div>
 
       <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4 text-xs">
-        <!-- Скрытые служебные переменные -->
         <input type="hidden" id="formCategoryId">
         <input type="hidden" id="formItemId">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Идентификатор (ID) -->
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Уникальный ID (латиница)</label>
             <input type="text" id="itemIdInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono font-bold">
             <p class="text-[9px] text-brand-brown/50 mt-1">Пример: alc_21, bake_2, des_12</p>
           </div>
 
-          <!-- Название -->
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Название блюда / напитка</label>
             <input type="text" id="itemNameInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
@@ -188,13 +213,11 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Цена -->
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Цена (в рублях)</label>
             <input type="number" id="itemPriceInput" min="0" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
           </div>
 
-          <!-- Доступность по умолчанию -->
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Статус доступности</label>
             <select id="itemAvailableInput" class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
@@ -204,13 +227,11 @@
           </div>
         </div>
 
-        <!-- Описание -->
         <div>
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Описание / Объем / Вес</label>
           <input type="text" id="itemDescriptionInput" placeholder="Пример: Крым, белое брют, 750 мл" class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white">
         </div>
 
-        <!-- Выбор подкатегории (если есть) -->
         <div id="subcategorySelectorWrapper" class="hidden">
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Виртуальный подраздел (Subcategory)</label>
           <select id="itemSubcategoryInput" class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
@@ -218,14 +239,13 @@
           </select>
         </div>
 
-        <!-- СПЕЦИАЛЬНЫЙ БЛОК ДЛЯ АЛКОГОЛЯ (Расчет порций и связь складов) -->
+        <!-- Параметры порций алкоголя -->
         <div id="alcoholSpecsWrapper" class="bg-brand-peach/10 border border-brand-peach/30 p-4 rounded-2xl space-y-3">
           <div class="flex items-center gap-1.5 border-b border-brand-peach/20 pb-1.5">
             <i data-lucide="wine" class="w-4 h-4 text-brand-peach"></i>
             <h4 class="text-[10px] font-black text-brand-brown uppercase tracking-wide">Параметры алкоголя & порций</h4>
           </div>
 
-          <!-- Быстрый выбор типа порции -->
           <div>
             <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон (Автозаполнение порций):</label>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
@@ -237,16 +257,14 @@
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <!-- Вес одной порции на складе (portionWeight) -->
             <div>
               <label class="block text-[9px] font-black text-brand-brown uppercase mb-1 flex items-center gap-1">
                 <span>Порций в единице (portionWeight)</span>
-                <i data-lucide="help-circle" class="w-3 h-3 text-brand-brown/40 cursor-help" title="Сколько порций со склада спишется при покупке этой 1 штуки. Бутылка списывает 5 или 6 порций, а бокал - 1."></i>
+                <i data-lucide="help-circle" class="w-3 h-3 text-brand-brown/40 cursor-help" title="Сколько порций со склада спишется при покупке этой 1 штуки."></i>
               </label>
               <input type="number" id="itemPortionWeightInput" min="1" max="50" required class="w-full px-3 py-1.5 rounded-lg border border-brand-brown/20 focus:outline-none focus:ring-1 focus:ring-brand-peach bg-white font-bold">
             </div>
 
-            <!-- Идентификатор склада (stockLinkId) -->
             <div>
               <label class="block text-[9px] font-black text-brand-brown uppercase mb-1 flex items-center gap-1">
                 <span>Общий склад (stockLinkId)</span>
@@ -292,7 +310,6 @@
         <div>
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Название категории</label>
           <input type="text" id="categoryTitleInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
-          <p class="text-[9px] text-brand-brown/50 mt-1">Например: Выпечка, Закуски, Алкоголь</p>
         </div>
 
         <div class="flex gap-2 pt-2 border-t border-brand-brown/15">
@@ -348,106 +365,185 @@
   </div>
 
   <script>
-    // --- Исходные данные (дефолтное меню из menu.json) ---
-    let menuData = {
-      "categories": [
-        {
-          "id": "alcohol",
-          "title": "Алкоголь",
-          "subcategories": [
-            { "id": "sparkling", "title": "Игристые вина" },
-            { "id": "still", "title": "Тихие вина" },
-            { "id": "strong", "title": "Крепкие напитки" }
-          ],
-          "items": [
-            {
-              "id": "alc_1",
-              "name": "Балаклава Брют, БОКАЛ",
-              "price": 450,
-              "description": "Крым, белое брют, 125 мл",
-              "available": true,
-              "stockLinkId": "stock_balaklava_brut",
-              "portionWeight": 1,
-              "subcategory": "sparkling"
-            },
-            {
-              "id": "alc_21",
-              "name": "Балаклава Брют, БУТЫЛКА",
-              "price": 2700,
-              "description": "Крым, белое брют, 750 мл",
-              "available": true,
-              "stockLinkId": "stock_balaklava_brut",
-              "portionWeight": 6,
-              "subcategory": "sparkling"
-            },
-            {
-              "id": "alc_3",
-              "name": "ЗБ Рислинг, БОКАЛ",
-              "price": 350,
-              "description": "Крым, белое полусухое, 150 мл",
-              "available": true,
-              "stockLinkId": "stock_zb_riesling",
-              "portionWeight": 1,
-              "subcategory": "still"
-            },
-            {
-              "id": "alc_23",
-              "name": "ЗБ Рислинг, БУТЫЛКА",
-              "price": 1750,
-              "description": "Крым, белое полусухое, 750 мл",
-              "available": true,
-              "stockLinkId": "stock_zb_riesling",
-              "portionWeight": 5,
-              "subcategory": "still"
-            }
-          ]
-        },
-        {
-          "id": "non-alcohol",
-          "title": "Безалкогольные напитки",
-          "subcategories": [
-            { "id": "hot", "title": "Горячие напитки" },
-            { "id": "juices_water", "title": "Соки / Воды" }
-          ],
-          "items": [
-            { "id": "hot_2", "name": "Капучино", "price": 220, "description": "150 мл", "available": true, "subcategory": "hot" },
-            { "id": "nalc_1", "name": "Вода Хрустальная", "price": 120, "description": "ПЭТ, 500 мл", "available": true, "subcategory": "juices_water" }
-          ]
-        },
-        {
-          "id": "snacks",
-          "title": "Закуски",
-          "items": [
-            { "id": "snack_1", "name": "Гренки ржаные с чесноком", "price": 190, "description": "С соусом Тартар, 150 г", "available": true }
-          ]
-        }
-      ]
-    };
+    // --- Константы репозитория GitHub ---
+    const GITHUB_OWNER = 'she2pbis-byte';
+    const GITHUB_REPO = 'vn-buffet';
+    const GITHUB_FILE_PATH = 'menu.json';
+    const GITHUB_BRANCH = 'main';
 
-    // Загрузка сохраненного состояния из localStorage, если оно есть
-    const savedLocalMenu = localStorage.getItem('edited_menu_data');
-    if (savedLocalMenu) {
-      try {
-        menuData = JSON.parse(savedLocalMenu);
-      } catch (e) {
-        console.error("Не удалось распарсить локальный бэкап", e);
-      }
-    }
+    // --- Состояние приложения ---
+    let menuData = { categories: [] };
+    let githubSha = null; // Будет загружено из API для коммитов
+    let isSaving = false;
 
     // --- Инициализация при старте ---
     window.onload = function() {
-      renderMenuTree();
+      initTokenUI();
+      loadMenuFromGitHub();
       lucide.createIcons();
     };
 
-    // --- Сохранение в локальный кэш и обновление живого предпросмотра ---
-    function updateMenuState() {
-      localStorage.setItem('edited_menu_data', JSON.stringify(menuData));
+    // --- Управление авторизацией в GitHub ---
+    function initTokenUI() {
+      const token = localStorage.getItem('github_pat');
+      const btnText = document.getElementById('tokenBtnText');
+      if (token) {
+        btnText.innerText = 'Токен сохранен';
+        updateSyncIndicator('amber', 'Токен готов. Синхронизация...');
+      } else {
+        btnText.innerText = 'Авторизовать GitHub';
+        updateSyncIndicator('red', 'Токен не настроен (Только просмотр)');
+      }
+    }
+
+    function openTokenModal() {
+      const savedToken = localStorage.getItem('github_pat') || '';
+      document.getElementById('githubTokenInput').value = savedToken;
+      document.getElementById('tokenModal').classList.remove('hidden');
+    }
+
+    function closeTokenModal() {
+      document.getElementById('tokenModal').classList.add('hidden');
+    }
+
+    function saveToken() {
+      const tokenVal = document.getElementById('githubTokenInput').value.trim();
+      if (tokenVal) {
+        localStorage.setItem('github_pat', tokenVal);
+      } else {
+        localStorage.removeItem('github_pat');
+      }
+      closeTokenModal();
+      initTokenUI();
+      // Перезагружаем файл с обновленной авторизацией
+      loadMenuFromGitHub();
+    }
+
+    function updateSyncIndicator(color, text) {
+      const indicator = document.getElementById('syncIndicator');
+      const textSpan = document.getElementById('syncText');
       
+      indicator.className = "w-2.5 h-2.5 rounded-full animate-pulse";
+      if (color === 'green') {
+        indicator.classList.add('bg-emerald-500');
+      } else if (color === 'red') {
+        indicator.classList.add('bg-red-500');
+        indicator.classList.remove('animate-pulse');
+      } else {
+        indicator.classList.add('bg-amber-500');
+      }
+      textSpan.innerText = text;
+    }
+
+    // --- Чтение файла menu.json из GitHub репозитория ---
+    async function loadMenuFromGitHub() {
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}?ref=${GITHUB_BRANCH}`;
+      const headers = {};
+      const token = localStorage.getItem('github_pat');
+      if (token) {
+        headers['Authorization'] = `token ${token}`;
+      }
+
+      try {
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+          throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+        const data = await response.json();
+        githubSha = data.sha; // Запоминаем SHA файла для будущей перезаписи
+
+        // Раскодируем Base64 контент, пришедший от GitHub (поддерживая кириллицу UTF-8)
+        const utf8String = atob(data.content.replace(/\s/g, ''));
+        const decodedContent = decodeURIComponent(escape(utf8String));
+        
+        menuData = JSON.parse(decodedContent);
+
+        // Разблокируем возможность редактирования
+        document.getElementById('addCategoryBtn').disabled = false;
+        document.getElementById('addCategoryBtn').classList.remove('cursor-not-allowed', 'opacity-40', 'border-brand-peach/20', 'bg-white/10');
+        document.getElementById('addCategoryBtn').classList.add('border-brand-peach/40', 'hover:border-brand-peach', 'bg-white/40', 'hover:bg-white');
+
+        updateSyncIndicator('green', 'Меню успешно синхронизировано');
+        renderMenuTree();
+      } catch (e) {
+        console.error("Ошибка при получении меню с GitHub:", e);
+        updateSyncIndicator('red', 'Ошибка загрузки с GitHub');
+        
+        document.getElementById('menuTreeContainer').innerHTML = `
+          <div class="text-center py-12 px-6 bg-white rounded-3xl border border-red-200 shadow-sm space-y-4">
+            <i data-lucide="alert-triangle" class="w-12 h-12 text-red-500 mx-auto"></i>
+            <h3 class="text-sm font-black text-brand-dark uppercase">Не удалось загрузить меню</h3>
+            <p class="text-xs text-brand-brown leading-relaxed max-w-sm mx-auto">
+              Проверьте интернет-соединение или обновите токен доступа GitHub. Публичные запросы к API GitHub лимитированы.
+            </p>
+            <button onclick="loadMenuFromGitHub()" class="bg-brand-peach text-white text-xs font-black px-4 py-2 rounded-xl transition hover:bg-brand-brown">
+              Повторить попытку
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    // --- Автоматическая запись обновленного menu.json в GitHub (Коммит) ---
+    async function saveMenuToGitHub() {
+      const token = localStorage.getItem('github_pat');
+      if (!token) {
+        updateSyncIndicator('red', 'Токен не настроен! Изменения локальные.');
+        return;
+      }
+
+      if (isSaving) return;
+      isSaving = true;
+      updateSyncIndicator('amber', 'Сохранение в GitHub...');
+
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
+      const updatedJsonString = JSON.stringify(menuData, null, 2);
+
+      // Корректно кодируем UTF-8 в Base64 для передачи кириллицы
+      const base64Content = btoa(unescape(encodeURIComponent(updatedJsonString)));
+
+      const body = {
+        message: 'Редактор меню: Автоматическое обновление menu.json',
+        content: base64Content,
+        sha: githubSha,
+        branch: GITHUB_BRANCH
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.message || `Ошибка HTTP: ${response.status}`);
+        }
+
+        const resData = await response.json();
+        githubSha = resData.content.sha; // Обновляем SHA для последующих коммитов
+
+        updateSyncIndicator('green', 'Все изменения сохранены в GitHub');
+      } catch (e) {
+        console.error("Ошибка сохранения на GitHub:", e);
+        updateSyncIndicator('red', 'Ошибка автосохранения на GitHub');
+        alert(`Ошибка записи в GitHub: ${e.message}\nУбедитесь, что ваш Personal Access Token имеет права на запись в репозиторий.`);
+      } finally {
+        isSaving = false;
+      }
+    }
+
+    // --- Обновление визуального представления и синхронизация ---
+    function updateMenuState() {
       const jsonStr = JSON.stringify(menuData, null, 2);
       document.getElementById('jsonPreview').value = jsonStr;
 
-      // Обновление показателей статистики
+      // Статистика
       let catCount = menuData.categories.length;
       let subcatCount = 0;
       let itemCount = 0;
@@ -460,6 +556,9 @@
       document.getElementById('statCategories').innerText = catCount;
       document.getElementById('statSubcategories').innerText = subcatCount;
       document.getElementById('statItems').innerText = itemCount;
+
+      // Автоматическая фоновая отправка коммита при изменениях
+      saveMenuToGitHub();
     }
 
     // Очистить строку поиска
@@ -474,9 +573,17 @@
       const treeContainer = document.getElementById('menuTreeContainer');
       treeContainer.innerHTML = '';
 
-      menuData.categories.forEach((category, categoryIndex) => {
-        
-        // Фильтрация позиций внутри категории
+      if (!menuData.categories || menuData.categories.length === 0) {
+        treeContainer.innerHTML = `
+          <div class="text-center py-16 bg-white rounded-3xl border border-brand-brown/10 shadow-sm">
+            <i data-lucide="alert-circle" class="w-10 h-10 text-brand-brown/30 mx-auto mb-2"></i>
+            <p class="text-xs text-brand-brown font-bold">В меню пока нет категорий</p>
+          </div>
+        `;
+        return;
+      }
+
+      menuData.categories.forEach((category) => {
         let matchedItems = category.items || [];
         if (query) {
           matchedItems = matchedItems.filter(item => 
@@ -486,17 +593,14 @@
           );
         }
 
-        // Если есть поисковый запрос и в этой категории нет совпадений, не выводим категорию
         if (query && matchedItems.length === 0) {
           return;
         }
 
-        // Верстка шапки категории
         const categoryCard = document.createElement('div');
         categoryCard.className = "bg-white rounded-2xl border border-brand-brown/10 shadow-sm overflow-hidden animate-slide-in";
         
         let subcategoriesCount = category.subcategories ? category.subcategories.length : 0;
-        
         let subcatsBadgeMarkup = subcategoriesCount > 0 
           ? `<span class="bg-brand-peach/10 text-brand-peach text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Подразделов: ${subcategoriesCount}</span>`
           : '';
@@ -529,9 +633,8 @@
           </div>
           
           <div class="p-4 space-y-2">
-            <!-- Список элементов -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="items-container-${category.id}">
-              <!-- Блюда вставляются сюда -->
+              <!-- Блюда -->
             </div>
             
             <div class="pt-2 border-t border-brand-brown/5 flex justify-end">
@@ -545,7 +648,6 @@
 
         treeContainer.appendChild(categoryCard);
 
-        // Наполнение контейнера блюд
         const itemsContainer = document.getElementById(`items-container-${category.id}`);
         if (matchedItems.length === 0) {
           itemsContainer.className = "block text-center py-6 border border-dashed border-brand-brown/10 rounded-xl bg-brand-cream/5";
@@ -560,7 +662,6 @@
               item.available ? 'border-brand-brown/10' : 'border-red-200 bg-red-50/20'
             }`;
 
-            // Поиск имени подкатегории для плашки
             let subcategoryLabel = '';
             if (category.subcategories && item.subcategory) {
               const subObj = category.subcategories.find(s => s.id === item.subcategory);
@@ -569,7 +670,6 @@
               }
             }
 
-            // Рендер веса порции и связи остатков для алкоголя
             let portionMeta = '';
             if (category.id === 'alcohol') {
               const pWeight = item.portionWeight !== undefined ? item.portionWeight : 1;
@@ -618,43 +718,7 @@
       lucide.createIcons();
     }
 
-    // --- ИМПОРТ И ЭКСПОРТ JSON ---
-    
-    // Загрузка файла пользователем
-    function handleFileImport(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (parsed && Array.isArray(parsed.categories)) {
-            menuData = parsed;
-            renderMenuTree();
-            alert('Меню успешно импортировано и загружено!');
-          } else {
-            alert('Ошибка структуры JSON. Файл должен иметь корневой объект с массивом "categories".');
-          }
-        } catch (error) {
-          alert('Ошибка чтения файла. Убедитесь, что это валидный JSON.');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    // Экспорт (скачивание в формате menu.json)
-    function exportMenuJson() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(menuData, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", "menu.json");
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    // Быстрое копирование в буфер обмена
+    // --- Копирование JSON в буфер ---
     function copyJsonToClipboard() {
       const textarea = document.getElementById('jsonPreview');
       textarea.select();
@@ -663,7 +727,6 @@
     }
 
     // --- УПРАВЛЕНИЕ КАТЕГОРИЯМИ ---
-    
     function openCategoryModal(catId = null) {
       const modal = document.getElementById('categoryModal');
       const form = document.getElementById('categoryForm');
@@ -674,7 +737,7 @@
         document.getElementById('categoryModalTitle').innerText = "Редактировать категорию";
         document.getElementById('formEditCategoryId').value = catId;
         document.getElementById('categoryIdInput').value = category.id;
-        document.getElementById('categoryIdInput').disabled = true; // Защита от случайного слома связей ID
+        document.getElementById('categoryIdInput').disabled = true;
         document.getElementById('categoryTitleInput').value = category.title;
       } else {
         document.getElementById('categoryModalTitle').innerText = "Создать категорию";
@@ -698,20 +761,17 @@
       const titleInput = document.getElementById('categoryTitleInput').value.trim();
 
       if (editCatId) {
-        // Режим редактирования
         const category = menuData.categories.find(c => c.id === editCatId);
         if (category) {
           category.title = titleInput;
         }
       } else {
-        // Проверка дублирования ID
         const exists = menuData.categories.some(c => c.id === idInput);
         if (exists) {
           alert('Категория с таким ID уже существует!');
           return;
         }
         
-        // Режим создания новой
         menuData.categories.push({
           id: idInput,
           title: titleInput,
@@ -731,8 +791,7 @@
       }
     }
 
-
-    // --- УПРАВЛЕНИЕ ПОДРАЗДЕЛАМИ (SUBCATEGORIES) ---
+    // --- УПРАВЛЕНИЕ ПОДРАЗДЕЛАМИ ---
     let activeSubcatCategoryId = '';
 
     function openSubcategoriesModal(catId) {
@@ -746,7 +805,7 @@
 
     function closeSubcategoriesModal() {
       document.getElementById('subcategoriesModal').classList.add('hidden');
-      renderMenuTree(); // Обновляем основное дерево, так как могли изменить списки
+      renderMenuTree();
     }
 
     function renderSubcategoriesList() {
@@ -794,16 +853,14 @@
         category.subcategories = [];
       }
 
-      // Проверка на дубликат ID
       const exists = category.subcategories.some(s => s.id === idInput);
       if (exists) {
-        alert('Подраздел с таким ID уже существует в этой категории!');
+        alert('Подраздел с таким ID уже существует!');
         return;
       }
 
       category.subcategories.push({ id: idInput, title: titleInput });
       
-      // Очистка формы ввода
       document.getElementById('newSubId').value = '';
       document.getElementById('newSubTitle').value = '';
 
@@ -811,11 +868,10 @@
     }
 
     function deleteSubcategory(subId) {
-      if (confirm('Удалить этот подраздел? Позиции, привязанные к нему, сохранятся, но лишатся метки.')) {
+      if (confirm('Удалить подраздел? Позиции меню лишатся связи с ним.')) {
         const category = menuData.categories.find(c => c.id === activeSubcatCategoryId);
         category.subcategories = category.subcategories.filter(s => s.id !== subId);
         
-        // Очищаем subcategory в элементах
         if (category.items) {
           category.items.forEach(item => {
             if (item.subcategory === subId) {
@@ -828,9 +884,7 @@
       }
     }
 
-
     // --- УПРАВЛЕНИЕ ПОЗИЦИЯМИ (ITEMS) ---
-    
     function openItemModal(catId, itemId = null) {
       const modal = document.getElementById('itemModal');
       const form = document.getElementById('itemForm');
@@ -841,7 +895,6 @@
       
       const category = menuData.categories.find(c => c.id === catId);
 
-      // 1. Поведение селектора подкатегорий
       const subSelectorWrapper = document.getElementById('subcategorySelectorWrapper');
       const subcatSelect = document.getElementById('itemSubcategoryInput');
       subcatSelect.innerHTML = '';
@@ -849,7 +902,6 @@
       if (category.subcategories && category.subcategories.length > 0) {
         subSelectorWrapper.classList.remove('hidden');
         
-        // Добавляем пустую опцию по умолчанию
         const emptyOpt = document.createElement('option');
         emptyOpt.value = '';
         emptyOpt.innerText = '-- Без подраздела --';
@@ -865,7 +917,6 @@
         subSelectorWrapper.classList.add('hidden');
       }
 
-      // 2. Блок порций для алкоголя
       const alcSpecs = document.getElementById('alcoholSpecsWrapper');
       if (catId === 'alcohol') {
         alcSpecs.classList.remove('hidden');
@@ -874,14 +925,12 @@
         alcSpecs.classList.add('hidden');
       }
 
-      // Настройка полей
       if (itemId) {
-        // Редактирование
         const item = category.items.find(i => i.id === itemId);
         document.getElementById('itemModalTitle').innerText = `Редактировать: ${item.name}`;
         
         document.getElementById('itemIdInput').value = item.id;
-        document.getElementById('itemIdInput').disabled = true; // ID нельзя изменить во избежание сбоя связей
+        document.getElementById('itemIdInput').disabled = true;
 
         document.getElementById('itemNameInput').value = item.name;
         document.getElementById('itemPriceInput').value = item.price;
@@ -892,13 +941,11 @@
           subcatSelect.value = item.subcategory || '';
         }
 
-        // Если это алкоголь, восстанавливаем порции
         if (catId === 'alcohol') {
           document.getElementById('itemPortionWeightInput').value = item.portionWeight !== undefined ? item.portionWeight : 1;
           document.getElementById('itemStockLinkIdInput').value = item.stockLinkId || '';
         }
       } else {
-        // Добавление новой позиции
         document.getElementById('itemModalTitle').innerText = `Новая позиция в "${category.title}"`;
         document.getElementById('itemIdInput').value = '';
         document.getElementById('itemIdInput').disabled = false;
@@ -914,7 +961,6 @@
       document.getElementById('itemModal').classList.add('hidden');
     }
 
-    // Генерация предложений существующих складов stockLinkId
     function populateStockLinkIdDatalist() {
       const datalist = document.getElementById('existingStockLinks');
       datalist.innerHTML = '';
@@ -934,14 +980,12 @@
       });
     }
 
-    // Умные шаблоны автозаполнения для алкоголя
     function applyAlcoholPreset(type) {
       const nameInput = document.getElementById('itemNameInput');
       const portionInput = document.getElementById('itemPortionWeightInput');
       const subSelect = document.getElementById('itemSubcategoryInput');
       const stockLinkIdInput = document.getElementById('itemStockLinkIdInput');
 
-      // Попытка сгенерировать автоматический stockLinkId на базе текущего имени или ID
       let rawName = nameInput.value.split(',')[0].trim();
       let translitName = transliterate(rawName).toLowerCase().replace(/[^a-z0-9]/g, '_');
       let predictedStockId = translitName ? `stock_${translitName}` : '';
@@ -952,19 +996,19 @@
           nameInput.value = `${rawName}, БОКАЛ`;
         }
       } else if (type === 'sparkling') {
-        portionInput.value = 6; // Ровно 6 порций по 125мл в бутылке 750мл
+        portionInput.value = 6; 
         subSelect.value = 'sparkling';
         if (nameInput.value && !nameInput.value.includes('БУТЫЛКА')) {
           nameInput.value = `${rawName}, БУТЫЛКА`;
         }
       } else if (type === 'still') {
-        portionInput.value = 5; // Ровно 5 порций по 150мл в бутылке 750мл
+        portionInput.value = 5; 
         subSelect.value = 'still';
         if (nameInput.value && !nameInput.value.includes('БУТЫЛКА')) {
           nameInput.value = `${rawName}, БУТЫЛКА`;
         }
       } else if (type === 'strong') {
-        portionInput.value = 10; // Стандартная бутылка крепкого алкоголя (500 мл содержит 10 стопок по 50 мл)
+        portionInput.value = 10; 
         subSelect.value = 'strong';
         if (nameInput.value && !nameInput.value.includes('БУТЫЛКА')) {
           nameInput.value = `${rawName}, БУТЫЛКА`;
@@ -976,7 +1020,6 @@
       }
     }
 
-    // Сохранение элемента
     function saveItem(event) {
       event.preventDefault();
 
@@ -1002,13 +1045,11 @@
         itemPayload.description = descriptionInput;
       }
 
-      // Подразделы
       const subcatSelect = document.getElementById('itemSubcategoryInput');
       if (category.subcategories && category.subcategories.length > 0 && subcatSelect.value) {
         itemPayload.subcategory = subcatSelect.value;
       }
 
-      // Логика алкоголя
       if (catId === 'alcohol') {
         const portionWeight = parseInt(document.getElementById('itemPortionWeightInput').value, 10);
         const stockLinkId = document.getElementById('itemStockLinkIdInput').value.trim();
@@ -1020,13 +1061,11 @@
       }
 
       if (editItemId) {
-        // Режим изменения
         const index = category.items.findIndex(i => i.id === editItemId);
         if (index !== -1) {
           category.items[index] = itemPayload;
         }
       } else {
-        // Проверка дублей ID в рамках всего меню
         let isDuplicate = false;
         menuData.categories.forEach(c => {
           if (c.items && c.items.some(i => i.id === idInput)) {
@@ -1035,7 +1074,7 @@
         });
 
         if (isDuplicate) {
-          alert('Товар с таким уникальным ID уже существует в меню!');
+          alert('Товар с таким уникальным ID уже существует!');
           return;
         }
 
@@ -1048,14 +1087,14 @@
     }
 
     function deleteItem(catId, itemId) {
-      if (confirm(`Удалить позицию "${itemId}" из меню?`)) {
+      if (confirm(`Удалить позицию "${itemId}"?`)) {
         const category = menuData.categories.find(c => c.id === catId);
         category.items = category.items.filter(i => i.id !== itemId);
         renderMenuTree();
       }
     }
 
-    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+    // --- Транслитерация ---
     function transliterate(word) {
       let answer = "";
       let converter = {
