@@ -20,7 +20,7 @@
               peach: '#C7886B',     // Терракота
               dark: '#1F1713',      // Темный шоколад
               brown: '#604539',     // Шоколадно-коричневый
-              cream: '#FFECD2',     // -бежевый
+              cream: '#FFECD2',     // Бежевый
               creamLight: '#FFF8EE',// Очень светлый бежевый
             }
           }
@@ -37,6 +37,16 @@
       to { transform: translateY(0); opacity: 1; }
     }
     .animate-slide-in { animation: slideIn 0.25s ease-out forwards; }
+    
+    /* Стилизация красивых выпадающих списков с кастомной стрелкой-шевроном бренда */
+    .custom-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%22%20stroke%3D%22%2523C7886B%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%2F%3E%3C%2Fsvg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1rem 1rem;
+      padding-right: 2.5rem;
+    }
   </style>
 </head>
 <body class="bg-brand-cream/40 text-brand-dark font-sans min-h-screen">
@@ -58,7 +68,7 @@
           <span id="syncText" class="hidden sm:inline">Подключение к GitHub...</span>
         </div>
         
-        <!-- Кнопка авторизации в GitHub (Стильный компактный пилл) -->
+        <!-- Кнопка авторизации в GitHub -->
         <button onclick="openTokenModal()" id="tokenBtn" class="flex items-center gap-1.5 bg-brand-brown hover:bg-brand-peach text-brand-cream px-2.5 py-1 rounded-xl text-[10px] font-black transition shadow-sm border border-brand-peach/10" title="Настроить токен доступа GitHub">
           <i data-lucide="key" class="w-3 h-3 flex-shrink-0"></i>
           <span id="tokenBtnText">Токен</span>
@@ -155,6 +165,26 @@
     </div>
   </div>
 
+  <!-- ==================== КАСТОМНЫЕ СИСТЕМНЫЕ ОКНА И ТОАСТЫ ==================== -->
+  
+  <!-- Кастомное окно подтверждения (Confirm) -->
+  <div id="customConfirmModal" class="fixed inset-0 bg-brand-dark/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-brand-cream border-2 border-brand-brown p-6 rounded-3xl w-full max-w-sm shadow-2xl space-y-4 animate-slide-in text-center">
+      <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto text-red-600 shadow-inner">
+        <i data-lucide="help-circle" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-sm font-black text-brand-dark uppercase tracking-wide">Подтверждение действия</h3>
+      <p id="customConfirmMessage" class="text-xs text-brand-brown font-medium leading-relaxed"></p>
+      <div class="flex gap-2 pt-2">
+        <button id="customConfirmYes" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-extrabold py-2.5 rounded-xl transition text-xs">Да, удалить</button>
+        <button id="customConfirmNo" class="flex-1 bg-white border border-brand-brown/20 text-brand-brown font-bold py-2.5 rounded-xl transition hover:bg-white/50 text-xs">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Кастомные всплывающие Тоаст-уведомления -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none max-w-sm"></div>
+
   <!-- ==================== МОДАЛЬНЫЕ ОКНА РЕДАКТИРОВАНИЯ ==================== -->
 
   <!-- Настройка GitHub Токена (PAT) -->
@@ -191,22 +221,28 @@
         <button onclick="closeItemModal()" class="text-brand-brown hover:text-brand-dark"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
+      <!-- Контейнер для отображения ошибок валидации формы на месте -->
+      <div id="validationErrorAlert" class="hidden bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-xs font-semibold flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+        <span id="validationErrorText">Пожалуйста, заполните все обязательные поля.</span>
+      </div>
+
       <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4 text-xs">
         <input type="hidden" id="formCategoryId">
         <input type="hidden" id="formItemId">
 
-        <!-- Поле 1: Виртуальный подраздел (Subcategory) - Позиционирован самым первым -->
+        <!-- Поле 1: Виртуальный подраздел (Subcategory) -->
         <div id="subcategorySelectorWrapper" class="hidden">
-          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Виртуальный подраздел (Subcategory)</label>
-          <select id="itemSubcategoryInput" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
-            <!-- Опции подставляются JS -->
+          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Виртуальный подраздел (Subcategory) *</label>
+          <select id="itemSubcategoryInput" class="custom-select w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-xs transition-colors">
+            <!-- Опции подставляются JS с дефолтным "- выбрать -" -->
           </select>
         </div>
 
         <!-- Поле 2: Название -->
         <div>
-          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Название блюда / напитка</label>
-          <input type="text" id="itemNameInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-sm">
+          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Название блюда / напитка *</label>
+          <input type="text" id="itemNameInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-sm transition-colors">
         </div>
 
         <!-- Поле 3: Описание -->
@@ -218,13 +254,14 @@
         <!-- Поле 4: Цена и статус доступности -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Цена (в рублях)</label>
-            <input type="number" id="itemPriceInput" min="0" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-sm">
+            <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Цена (в рублях) *</label>
+            <input type="number" id="itemPriceInput" min="0" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-sm transition-colors">
           </div>
 
           <div>
-            <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Статус доступности</label>
-            <select id="itemAvailableInput" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-xs">
+            <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Статус доступности *</label>
+            <select id="itemAvailableInput" class="custom-select w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-xs transition-colors">
+              <option value="" disabled selected>- выбрать -</option>
               <option value="true">В наличии (доступен к заказу)</option>
               <option value="false">В стоп-листе (скрыт у гостей)</option>
             </select>
@@ -239,9 +276,9 @@
           </div>
 
           <div>
-            <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон порций:</label>
-            <select id="alcoholPresetSelect" onchange="applyAlcoholPresetDropdown(this.value)" class="w-full px-3 py-2 rounded-lg border border-brand-peach/30 bg-white font-bold text-xs focus:ring-1 focus:ring-brand-peach focus:outline-none text-brand-dark">
-              <option value="">-- Выберите шаблон порций --</option>
+            <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон порций *</label>
+            <select id="alcoholPresetSelect" onchange="applyAlcoholPresetDropdown(this.value)" class="custom-select w-full px-3 py-2 rounded-lg border border-brand-peach/30 bg-white font-bold text-xs focus:ring-1 focus:ring-brand-peach focus:outline-none text-brand-dark transition-colors">
+              <option value="" disabled selected>- выбрать -</option>
               <option value="glass">Бокал (1 порция)</option>
               <option value="sparkling">Игристое вино (Бутылка = 6 порций)</option>
               <option value="still">Тихое вино (Бутылка = 5 порций)</option>
@@ -251,7 +288,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
               <label class="block text-[9px] font-black text-brand-brown uppercase mb-1 flex items-center gap-1">
-                <span>Порций в единице (portionWeight)</span>
+                <span>Порций в единице (portionWeight) *</span>
                 <i data-lucide="help-circle" class="w-3.5 h-3.5 text-brand-brown/40 cursor-help" title="Сколько порций со склада спишется при покупке этой 1 штуки."></i>
               </label>
               <input type="number" id="itemPortionWeightInput" min="1" max="50" required class="w-full px-3 py-1.5 rounded-lg border border-brand-brown/20 focus:outline-none focus:ring-1 focus:ring-brand-peach bg-white font-bold">
@@ -259,13 +296,10 @@
 
             <div>
               <label class="block text-[9px] font-black text-brand-brown uppercase mb-1 flex items-center gap-1">
-                <span>Общий склад (stockLinkId)</span>
+                <span>Общий склад (stockLinkId) *</span>
                 <i data-lucide="help-circle" class="w-3.5 h-3.5 text-brand-brown/40 cursor-help" title="Связывает бокалы и бутылки одного вина. Позволяет им списываться из единого котла остатков."></i>
               </label>
-              <input type="text" id="itemStockLinkIdInput" placeholder="stock_название" class="w-full px-3 py-1.5 rounded-lg border border-brand-brown/20 focus:outline-none focus:ring-1 focus:ring-brand-peach bg-white font-mono" list="existingStockLinks">
-              <datalist id="existingStockLinks">
-                <!-- Заполняется JS -->
-              </datalist>
+              <input type="text" id="itemStockLinkIdInput" placeholder="stock_название" class="w-full px-3 py-1.5 rounded-lg border border-brand-brown/20 focus:outline-none focus:ring-1 focus:ring-brand-peach bg-white font-mono">
             </div>
           </div>
         </div>
@@ -273,11 +307,11 @@
         <!-- Поле 6: Уникальный ID - Находится в самом низу формы -->
         <div class="pt-2 border-t border-brand-brown/5">
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1 flex items-center justify-between">
-            <span>Уникальный ID (латиница)</span>
+            <span>Уникальный ID (латиница) *</span>
             <span class="text-[9px] text-brand-peach font-bold" id="idAutoGeneratedBadge">Автогенерация включена</span>
           </label>
-          <input type="text" id="itemIdInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono font-bold">
-          <p class="text-[9px] text-brand-brown/50 mt-1">Пример: alc_21, bake_2, des_12. ID нельзя редактировать после сохранения.</p>
+          <input type="text" id="itemIdInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono font-bold transition-colors">
+          <p class="text-[9px] text-brand-brown/50 mt-1">ID генерируется автоматически. Изменить его после сохранения нельзя.</p>
         </div>
 
         <div class="flex gap-2 pt-3 border-t border-brand-brown/15">
@@ -305,13 +339,13 @@
 
         <div>
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Уникальный ID категории (латиница)</label>
-          <input type="text" id="categoryIdInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono font-bold">
+          <input type="text" id="categoryIdInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-mono font-bold">
           <p class="text-[9px] text-brand-brown/50 mt-1">Примеры: alcohol, bakery, salads, desserts</p>
         </div>
 
         <div>
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Название категории</label>
-          <input type="text" id="categoryTitleInput" required class="w-full px-3 py-2 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
+          <input type="text" id="categoryTitleInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
         </div>
 
         <div class="flex gap-2 pt-2 border-t border-brand-brown/15">
@@ -381,13 +415,78 @@
     // Состояние свернутости/развернутости разделов (Аккордеон: изначально все свернуты)
     let activeExpandedCategoryId = '';
 
+    // Глобальный обработчик функции подтверждения
+    let activeConfirmCallback = null;
+
     // --- Инициализация при старте ---
     window.onload = function() {
       initTokenUI();
       loadMenuFromGitHub();
       setupFormAutoIdListeners();
+      setupCustomConfirm();
       lucide.createIcons();
     };
+
+    // --- Система кастомных всплывающих уведомлений (Toast) ---
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      
+      let bgStyle = 'bg-brand-dark border-brand-peach/30 text-brand-cream';
+      let icon = 'info';
+
+      if (type === 'success') {
+        bgStyle = 'bg-emerald-850 border-emerald-500/30 text-white bg-emerald-900';
+        icon = 'check-circle-2';
+      } else if (type === 'error') {
+        bgStyle = 'bg-red-950 border-red-500/30 text-white bg-red-900';
+        icon = 'alert-triangle';
+      }
+
+      toast.className = `p-3 rounded-xl border flex items-center gap-2.5 shadow-xl text-xs font-bold transition-all transform translate-y-2 opacity-0 animate-slide-in ${bgStyle}`;
+      toast.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Плавное появление
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      // Самоудаление через 3.5 секунды
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // --- Система кастомных окон подтверждения (Confirm) ---
+    function setupCustomConfirm() {
+      const yesBtn = document.getElementById('customConfirmYes');
+      const noBtn = document.getElementById('customConfirmNo');
+      const modal = document.getElementById('customConfirmModal');
+
+      yesBtn.onclick = function() {
+        modal.classList.add('hidden');
+        if (activeConfirmCallback) activeConfirmCallback();
+        activeConfirmCallback = null;
+      };
+
+      noBtn.onclick = function() {
+        modal.classList.add('hidden');
+        activeConfirmCallback = null;
+      };
+    }
+
+    function askConfirm(message, callback) {
+      document.getElementById('customConfirmMessage').innerText = message;
+      activeConfirmCallback = callback;
+      document.getElementById('customConfirmModal').classList.remove('hidden');
+    }
 
     // --- Управление авторизацией в GitHub ---
     function initTokenUI() {
@@ -422,8 +521,10 @@
       const tokenVal = document.getElementById('githubTokenInput').value.trim();
       if (tokenVal) {
         localStorage.setItem('github_pat', tokenVal);
+        showToast('Токен доступа GitHub сохранен', 'success');
       } else {
         localStorage.removeItem('github_pat');
+        showToast('Токен удален. Изменения не сохранятся на сервер.', 'info');
       }
       closeTokenModal();
       initTokenUI();
@@ -538,10 +639,11 @@
         githubSha = resData.content.sha;
 
         updateSyncIndicator('green', 'Изменения сохранены');
+        showToast('Изменения успешно записаны на GitHub', 'success');
       } catch (e) {
         console.error("Ошибка сохранения на GitHub:", e);
         updateSyncIndicator('red', 'Ошибка автосохранения');
-        alert(`Ошибка записи в GitHub: ${e.message}\nУбедитесь, что ваш Personal Access Token имеет права на запись в репозиторий.`);
+        showToast(`Ошибка сохранения: ${e.message}`, 'error');
       } finally {
         isSaving = false;
       }
@@ -580,7 +682,7 @@
       if (activeExpandedCategoryId === catId) {
         activeExpandedCategoryId = ''; // Сворачиваем текущий
       } else {
-        activeExpandedCategoryId = catId; // Разворачиваем выбранный, все остальные автоматически свернутся
+        activeExpandedCategoryId = catId; // Разворачиваем выбранный
       }
       renderMenuTree();
     }
@@ -615,7 +717,7 @@
           return;
         }
 
-        const isExpanded = category.id === activeExpandedCategoryId || (query !== ''); // При поиске принудительно разворачиваем
+        const isExpanded = category.id === activeExpandedCategoryId || (query !== ''); // При поиске разворачиваем
 
         const categoryCard = document.createElement('div');
         categoryCard.className = "bg-white rounded-2xl border border-brand-brown/10 shadow-sm overflow-hidden animate-slide-in";
@@ -625,7 +727,6 @@
           ? `<span class="bg-brand-peach/10 text-brand-peach text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Подразделов: ${subcategoriesCount}</span>`
           : '';
 
-        // Заголовок категории со сворачиванием по тапу (ID категории визуально убраны из разметки)
         categoryCard.innerHTML = `
           <div 
             onclick="toggleCategoryCollapse('${category.id}')"
@@ -652,10 +753,9 @@
             </div>
           </div>
           
-          <!-- Разворачиваемое тело категории -->
           <div class="${isExpanded ? 'block' : 'hidden'}">
             
-            <!-- Панель управления в начале категории: Две равновеликие и одинаковые кнопки на всю ширину страницы -->
+            <!-- Панель управления в начале категории -->
             <div class="bg-brand-creamLight/50 px-4 py-2.5 border-b border-brand-brown/5 grid grid-cols-2 gap-2 w-full">
               <button onclick="openSubcategoriesModal('${category.id}')" class="w-full h-10 flex items-center justify-center gap-1.5 bg-white hover:bg-brand-cream border border-brand-brown/20 text-brand-brown rounded-xl text-[10px] font-black transition shadow-sm">
                 <i data-lucide="folder-tree" class="w-3.5 h-3.5 text-brand-peach flex-shrink-0"></i>
@@ -685,7 +785,7 @@
           itemsContainer.className = "block text-center py-6 border border-dashed border-brand-brown/10 rounded-xl bg-brand-cream/5";
           itemsContainer.innerHTML = `
             <i data-lucide="package-open" class="w-6 h-6 text-brand-brown/30 mx-auto mb-1"></i>
-            <span class="text-[10px] text-brand-brown/60 font-bold">В этой категории пока нет блюд или напитков</span>
+            <span class="text-[10px] text-brand-brown/60 font-bold">В этой категории пока нет позиций</span>
           `;
         } else {
           matchedItems.forEach(item => {
@@ -755,7 +855,7 @@
       const textarea = document.getElementById('jsonPreview');
       textarea.select();
       document.execCommand('copy');
-      alert('Код меню успешно скопирован в буфер обмена!');
+      showToast('Код меню успешно скопирован в буфер обмена', 'success');
     }
 
     // --- УПРАВЛЕНИЕ КАТЕГОРИЯМИ ---
@@ -800,7 +900,7 @@
       } else {
         const exists = menuData.categories.some(c => c.id === idInput);
         if (exists) {
-          alert('Категория с таким ID уже существует!');
+          showToast('Категория с таким ID уже существует!', 'error');
           return;
         }
         
@@ -817,10 +917,11 @@
     }
 
     function deleteCategory(catId) {
-      if (confirm(`Вы уверены, что хотите полностью удалить категорию "${catId}" и все её позиции?`)) {
+      askConfirm(`Вы уверены, что хотите полностью удалить категорию "${catId}" и все её позиции?`, () => {
         menuData.categories = menuData.categories.filter(c => c.id !== catId);
         renderMenuTree();
-      }
+        showToast('Категория успешно удалена', 'info');
+      });
     }
 
     // --- УПРАВЛЕНИЕ ПОДРАЗДЕЛАМИ ---
@@ -876,7 +977,7 @@
       const titleInput = document.getElementById('newSubTitle').value.trim();
 
       if (!idInput || !titleInput) {
-        alert('Заполните ID и заголовок подраздела!');
+        showToast('Заполните ID и заголовок подраздела!', 'error');
         return;
       }
 
@@ -887,7 +988,7 @@
 
       const exists = category.subcategories.some(s => s.id === idInput);
       if (exists) {
-        alert('Подраздел с таким ID уже существует!');
+        showToast('Подраздел с таким ID уже существует!', 'error');
         return;
       }
 
@@ -899,9 +1000,8 @@
       renderSubcategoriesList();
     }
 
-    // Удаление подразделов (косвенные элементы развязываются)
     function deleteSubcategory(subId) {
-      if (confirm('Удалить подраздел? Позиции меню лишатся связи с ним.')) {
+      askConfirm('Удалить подраздел? Позиции меню лишатся связи с ним.', () => {
         const category = menuData.categories.find(c => c.id === activeSubcatCategoryId);
         category.subcategories = category.subcategories.filter(s => s.id !== subId);
         
@@ -914,7 +1014,8 @@
         }
 
         renderSubcategoriesList();
-      }
+        showToast('Подраздел удален', 'info');
+      });
     }
 
     // --- УПРАВЛЕНИЕ ПОЗИЦИЯМИ (ITEMS) ---
@@ -922,6 +1023,15 @@
       const modal = document.getElementById('itemModal');
       const form = document.getElementById('itemForm');
       form.reset();
+
+      // Скрываем прошлые сообщения об ошибках валидации
+      document.getElementById('validationErrorAlert').classList.add('hidden');
+      
+      // Снимаем красную обводку ошибок, если она осталась
+      document.querySelectorAll('#itemForm select, #itemForm input').forEach(el => {
+        el.classList.remove('border-red-500', 'ring-2', 'ring-red-100');
+        el.classList.add('border-brand-brown/20');
+      });
 
       document.getElementById('formCategoryId').value = catId;
       document.getElementById('formItemId').value = itemId || '';
@@ -935,9 +1045,12 @@
       if (category.subcategories && category.subcategories.length > 0) {
         subSelectorWrapper.classList.remove('hidden');
         
+        // По умолчанию отображать "- выбрать -" (Пункт 2)
         const emptyOpt = document.createElement('option');
-        emptyOpt.value = '';
-        emptyOpt.innerText = '-- Без подраздела --';
+        emptyOpt.value = "";
+        emptyOpt.innerText = '- выбрать -';
+        emptyOpt.disabled = true;
+        emptyOpt.selected = true;
         subcatSelect.appendChild(emptyOpt);
 
         category.subcategories.forEach(sub => {
@@ -954,10 +1067,15 @@
       if (catId === 'alcohol') {
         alcSpecs.classList.remove('hidden');
         populateStockLinkIdDatalist();
-        document.getElementById('alcoholPresetSelect').value = '';
+        
+        // По умолчанию ставим невыбранным "- выбрать -"
+        document.getElementById('alcoholPresetSelect').value = "";
       } else {
         alcSpecs.classList.add('hidden');
       }
+
+      // По умолчанию ставим невыбранным "- выбрать -" для статуса доступности при добавлении
+      document.getElementById('itemAvailableInput').value = "";
 
       const idBadge = document.getElementById('idAutoGeneratedBadge');
 
@@ -976,7 +1094,7 @@
         document.getElementById('itemDescriptionInput').value = item.description || '';
         
         if (category.subcategories && category.subcategories.length > 0) {
-          subcatSelect.value = item.subcategory || '';
+          subcatSelect.value = item.subcategory || "";
         }
 
         if (catId === 'alcohol') {
@@ -989,7 +1107,7 @@
           if (pWeight === 1) presetSelect.value = 'glass';
           else if (pWeight === 6 && sub === 'sparkling') presetSelect.value = 'sparkling';
           else if (pWeight === 5 && sub === 'still') presetSelect.value = 'still';
-          else presetSelect.value = '';
+          else presetSelect.value = "";
         }
       } else {
         document.getElementById('itemModalTitle').innerText = `Новая позиция в "${category.title}"`;
@@ -998,13 +1116,8 @@
         idBadge.innerText = "Автогенерация включена";
         idBadge.className = "text-[9px] text-green-600 font-bold";
 
-        document.getElementById('itemAvailableInput').value = "true";
         document.getElementById('itemPortionWeightInput').value = 1;
         document.getElementById('itemStockLinkIdInput').value = '';
-        
-        if (category.subcategories && category.subcategories.length > 0) {
-          subcatSelect.value = category.subcategories[0].id;
-        }
 
         setTimeout(tryAutoGenerateId, 50);
       }
@@ -1166,43 +1279,117 @@
       tryAutoGenerateId();
     }
 
+    // --- Валидация и Сохранение Позиции (Пункт 3) ---
     function saveItem(event) {
       event.preventDefault();
 
       const catId = document.getElementById('formCategoryId').value;
       const editItemId = document.getElementById('formItemId').value;
       
-      const idInput = document.getElementById('itemIdInput').value.trim().toLowerCase();
-      const nameInput = document.getElementById('itemNameInput').value.trim();
-      const priceInput = Number(document.getElementById('itemPriceInput').value);
-      const availableInput = document.getElementById('itemAvailableInput').value === "true";
-      const descriptionInput = document.getElementById('itemDescriptionInput').value.trim();
-      
+      const idInput = document.getElementById('itemIdInput');
+      const nameInput = document.getElementById('itemNameInput');
+      const priceInput = document.getElementById('itemPriceInput');
+      const availableInput = document.getElementById('itemAvailableInput');
+      const subcatSelect = document.getElementById('itemSubcategoryInput');
+      const presetSelect = document.getElementById('alcoholPresetSelect');
+      const portionInput = document.getElementById('itemPortionWeightInput');
+      const stockLinkIdInput = document.getElementById('itemStockLinkIdInput');
+      const descriptionInput = document.getElementById('itemDescriptionInput');
+
+      const errors = [];
+      const errFields = [];
+
+      // Сброс старой подсветки ошибок
+      document.querySelectorAll('#itemForm select, #itemForm input').forEach(el => {
+        el.classList.remove('border-red-500', 'ring-2', 'ring-red-100');
+        el.classList.add('border-brand-brown/20');
+      });
+
+      // 1. Проверка текстовых/числовых обязательных полей
+      if (!nameInput.value.trim()) {
+        errors.push('Укажите название позиции.');
+        errFields.push(nameInput);
+      }
+      if (priceInput.value === '' || Number(priceInput.value) < 0) {
+        errors.push('Укажите корректную цену позиции.');
+        errFields.push(priceInput);
+      }
+      if (!idInput.value.trim()) {
+        errors.push('Укажите уникальный ID позиции.');
+        errFields.push(idInput);
+      }
+
+      // 2. Валидация выпадающего списка "Статус доступности" (должен быть выбран отличным от "")
+      if (availableInput.value === "") {
+        errors.push('Выберите статус доступности позиции.');
+        errFields.push(availableInput);
+      }
+
+      // 3. Валидация выпадающего списка "Виртуальный подраздел" (если обертка видима)
+      const isSubcatVisible = !document.getElementById('subcategorySelectorWrapper').classList.contains('hidden');
+      if (isSubcatVisible && subcatSelect.value === "") {
+        errors.push('Выберите виртуальный подраздел.');
+        errFields.push(subcatSelect);
+      }
+
+      // 4. Ограничения для алкогольной спецификации
+      if (catId === 'alcohol') {
+        if (presetSelect.value === "") {
+          errors.push('Выберите быстрый шаблон порций алкоголя.');
+          errFields.push(presetSelect);
+        }
+        if (!portionInput.value || Number(portionInput.value) <= 0) {
+          errors.push('Укажите корректный вес порции (portionWeight).');
+          errFields.push(portionInput);
+        }
+        if (!stockLinkIdInput.value.trim()) {
+          errors.push('Заполните поле общего склада (stockLinkId).');
+          errFields.push(stockLinkIdInput);
+        }
+      }
+
+      // Если обнаружены ошибки валидации
+      if (errors.length > 0) {
+        // Подсвечиваем ошибочные поля красной границей
+        errFields.forEach(field => {
+          field.classList.remove('border-brand-brown/20');
+          field.classList.add('border-red-500', 'ring-2', 'ring-red-100');
+        });
+
+        const alertContainer = document.getElementById('validationErrorAlert');
+        const alertText = document.getElementById('validationErrorText');
+        
+        alertText.innerText = errors[0]; // Показываем первую критическую ошибку
+        alertContainer.classList.remove('hidden');
+        
+        // Скроллим форму к началу, чтобы пользователь увидел блок ошибки
+        document.getElementById('itemModal').querySelector('div').scrollTop = 0;
+        
+        showToast('Пожалуйста, исправьте ошибки заполнения формы', 'error');
+        return;
+      }
+
       const category = menuData.categories.find(c => c.id === catId);
       
       let itemPayload = {
-        id: idInput,
-        name: nameInput,
-        price: priceInput,
-        available: availableInput,
+        id: idInput.value.trim().toLowerCase(),
+        name: nameInput.value.trim(),
+        price: Number(priceInput.value),
+        available: availableInput.value === "true",
       };
 
-      if (descriptionInput) {
-        itemPayload.description = descriptionInput;
+      if (descriptionInput.value.trim()) {
+        itemPayload.description = descriptionInput.value.trim();
       }
 
-      const subcatSelect = document.getElementById('itemSubcategoryInput');
-      if (category.subcategories && category.subcategories.length > 0 && subcatSelect.value) {
+      if (isSubcatVisible && subcatSelect.value) {
         itemPayload.subcategory = subcatSelect.value;
       }
 
       if (catId === 'alcohol') {
-        const portionWeight = parseInt(document.getElementById('itemPortionWeightInput').value, 10);
-        const stockLinkId = document.getElementById('itemStockLinkIdInput').value.trim();
-
-        itemPayload.portionWeight = isNaN(portionWeight) ? 1 : portionWeight;
-        if (stockLinkId) {
-          itemPayload.stockLinkId = stockLinkId;
+        itemPayload.portionWeight = parseInt(portionInput.value, 10);
+        if (stockLinkIdInput.value.trim()) {
+          itemPayload.stockLinkId = stockLinkIdInput.value.trim();
         }
       }
 
@@ -1214,13 +1401,14 @@
       } else {
         let isDuplicate = false;
         menuData.categories.forEach(c => {
-          if (c.items && c.items.some(i => i.id === idInput)) {
+          if (c.items && c.items.some(i => i.id === itemPayload.id)) {
             isDuplicate = true;
           }
         });
 
         if (isDuplicate) {
-          alert('Товар с таким уникальным ID уже существует!');
+          idInput.classList.add('border-red-500', 'ring-2', 'ring-red-100');
+          showToast('Товар с таким уникальным ID уже существует в меню!', 'error');
           return;
         }
 
@@ -1233,11 +1421,12 @@
     }
 
     function deleteItem(catId, itemId) {
-      if (confirm(`Удалить позицию "${itemId}"?`)) {
+      askConfirm(`Удалить позицию "${itemId}" из меню?`, () => {
         const category = menuData.categories.find(c => c.id === catId);
         category.items = category.items.filter(i => i.id !== itemId);
         renderMenuTree();
-      }
+        showToast('Позиция меню успешно удалена', 'info');
+      });
     }
 
     // --- Транслитерация ---
