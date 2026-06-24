@@ -142,7 +142,7 @@
         <div class="bg-brand-dark text-emerald-400 p-4 rounded-3xl shadow-xl flex flex-col gap-3">
           <div class="flex justify-between items-center border-b border-brand-brown/40 pb-2">
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span class="text-[10px] font-black text-brand-cream tracking-widest uppercase">Живой код JSON</span>
             </div>
             <button onclick="copyJsonToClipboard()" class="text-xs text-brand-cream hover:text-brand-peach transition flex items-center gap-1">
@@ -350,7 +350,7 @@
 
         <div class="flex gap-2 pt-2 border-t border-brand-brown/15">
           <button type="submit" class="flex-1 bg-brand-peach hover:bg-brand-brown text-white font-extrabold py-3 rounded-xl transition">
-            Сохранить категорию
+            Сохранить категории
           </button>
           <button type="button" onclick="closeCategoryModal()" class="px-4 py-3 bg-white border border-brand-brown/20 text-brand-brown font-bold rounded-xl transition hover:bg-white/50">
             Отмена
@@ -436,7 +436,7 @@
       let icon = 'info';
 
       if (type === 'success') {
-        bgStyle = 'bg-emerald-850 border-emerald-500/30 text-white bg-emerald-900';
+        bgStyle = 'bg-emerald-950 border-emerald-500/30 text-white bg-emerald-900';
         icon = 'check-circle-2';
       } else if (type === 'error') {
         bgStyle = 'bg-red-950 border-red-500/30 text-white bg-red-900';
@@ -881,6 +881,7 @@
       modal.classList.remove('hidden');
     }
 
+    // Скрытие модалки категории
     function closeCategoryModal() {
       document.getElementById('categoryModal').classList.add('hidden');
     }
@@ -1019,110 +1020,131 @@
     }
 
     // --- УПРАВЛЕНИЕ ПОЗИЦИЯМИ (ITEMS) ---
+    // Функция полностью защищена от падений с помощью guardrails
     function openItemModal(catId, itemId = null) {
-      const modal = document.getElementById('itemModal');
-      const form = document.getElementById('itemForm');
-      form.reset();
+      try {
+        const modal = document.getElementById('itemModal');
+        const form = document.getElementById('itemForm');
+        if (form) form.reset();
 
-      // Скрываем прошлые сообщения об ошибках валидации
-      document.getElementById('validationErrorAlert').classList.add('hidden');
-      
-      // Снимаем красную обводку ошибок, если она осталась
-      document.querySelectorAll('#itemForm select, #itemForm input').forEach(el => {
-        el.classList.remove('border-red-500', 'ring-2', 'ring-red-100');
-        el.classList.add('border-brand-brown/20');
-      });
-
-      document.getElementById('formCategoryId').value = catId;
-      document.getElementById('formItemId').value = itemId || '';
-      
-      const category = menuData.categories.find(c => c.id === catId);
-
-      const subSelectorWrapper = document.getElementById('subcategorySelectorWrapper');
-      const subcatSelect = document.getElementById('itemSubcategoryInput');
-      subcatSelect.innerHTML = '';
-
-      if (category.subcategories && category.subcategories.length > 0) {
-        subSelectorWrapper.classList.remove('hidden');
+        // Скрываем прошлые сообщения об ошибках валидации
+        const alertContainer = document.getElementById('validationErrorAlert');
+        if (alertContainer) alertContainer.classList.add('hidden');
         
-        // По умолчанию отображать "- выбрать -" (Пункт 2)
-        const emptyOpt = document.createElement('option');
-        emptyOpt.value = "";
-        emptyOpt.innerText = '- выбрать -';
-        emptyOpt.disabled = true;
-        emptyOpt.selected = true;
-        subcatSelect.appendChild(emptyOpt);
-
-        category.subcategories.forEach(sub => {
-          const opt = document.createElement('option');
-          opt.value = sub.id;
-          opt.innerText = sub.title;
-          subcatSelect.appendChild(opt);
+        // Снимаем красную обводку ошибок, если она осталась
+        document.querySelectorAll('#itemForm select, #itemForm input').forEach(el => {
+          el.classList.remove('border-red-500', 'ring-2', 'ring-red-100');
+          el.classList.add('border-brand-brown/20');
         });
-      } else {
-        subSelectorWrapper.classList.add('hidden');
-      }
 
-      const alcSpecs = document.getElementById('alcoholSpecsWrapper');
-      if (catId === 'alcohol') {
-        alcSpecs.classList.remove('hidden');
-        populateStockLinkIdDatalist();
+        document.getElementById('formCategoryId').value = catId;
+        document.getElementById('formItemId').value = itemId || '';
         
-        // По умолчанию ставим невыбранным "- выбрать -"
-        document.getElementById('alcoholPresetSelect').value = "";
-      } else {
-        alcSpecs.classList.add('hidden');
-      }
+        const category = menuData.categories.find(c => c.id === catId);
+        if (!category) {
+          showToast("Ошибка: выбранная категория меню не найдена!", "error");
+          return;
+        }
 
-      // По умолчанию ставим невыбранным "- выбрать -" для статуса доступности при добавлении
-      document.getElementById('itemAvailableInput').value = "";
+        const subSelectorWrapper = document.getElementById('subcategorySelectorWrapper');
+        const subcatSelect = document.getElementById('itemSubcategoryInput');
+        if (subcatSelect) subcatSelect.innerHTML = '';
 
-      const idBadge = document.getElementById('idAutoGeneratedBadge');
-
-      if (itemId) {
-        const item = category.items.find(i => i.id === itemId);
-        document.getElementById('itemModalTitle').innerText = `Редактировать: ${item.name}`;
-        
-        document.getElementById('itemIdInput').value = item.id;
-        document.getElementById('itemIdInput').disabled = true;
-        idBadge.innerText = "Редактирование ID отключено";
-        idBadge.className = "text-[9px] text-brand-brown/50 font-bold";
-
-        document.getElementById('itemNameInput').value = item.name;
-        document.getElementById('itemPriceInput').value = item.price;
-        document.getElementById('itemAvailableInput').value = item.available ? "true" : "false";
-        document.getElementById('itemDescriptionInput').value = item.description || '';
-        
         if (category.subcategories && category.subcategories.length > 0) {
-          subcatSelect.value = item.subcategory || "";
-        }
-
-        if (catId === 'alcohol') {
-          document.getElementById('itemPortionWeightInput').value = item.portionWeight !== undefined ? item.portionWeight : 1;
-          document.getElementById('itemStockLinkIdInput').value = item.stockLinkId || '';
+          if (subSelectorWrapper) subSelectorWrapper.classList.remove('hidden');
           
-          const pWeight = item.portionWeight;
-          const sub = item.subcategory;
-          const presetSelect = document.getElementById('alcoholPresetSelect');
-          if (pWeight === 1) presetSelect.value = 'glass';
-          else if (pWeight === 6 && sub === 'sparkling') presetSelect.value = 'sparkling';
-          else if (pWeight === 5 && sub === 'still') presetSelect.value = 'still';
-          else presetSelect.value = "";
+          // По умолчанию отображаем пустую строку "- выбрать -"
+          const emptyOpt = document.createElement('option');
+          emptyOpt.value = "";
+          emptyOpt.innerText = '- выбрать -';
+          emptyOpt.disabled = true;
+          emptyOpt.selected = true;
+          if (subcatSelect) subcatSelect.appendChild(emptyOpt);
+
+          category.subcategories.forEach(sub => {
+            const opt = document.createElement('option');
+            opt.value = sub.id;
+            opt.innerText = sub.title;
+            if (subcatSelect) subcatSelect.appendChild(opt);
+          });
+          if (subcatSelect) subcatSelect.selectedIndex = 0;
+        } else {
+          if (subSelectorWrapper) subSelectorWrapper.classList.add('hidden');
         }
-      } else {
-        document.getElementById('itemModalTitle').innerText = `Новая позиция в "${category.title}"`;
-        document.getElementById('itemIdInput').value = '';
-        document.getElementById('itemIdInput').disabled = false;
-        idBadge.innerText = "Автогенерация включена";
-        idBadge.className = "text-[9px] text-green-600 font-bold";
 
-        document.getElementById('itemPortionWeightInput').value = 1;
-        document.getElementById('itemStockLinkIdInput').value = '';
+        const alcSpecs = document.getElementById('alcoholSpecsWrapper');
+        if (catId === 'alcohol') {
+          if (alcSpecs) alcSpecs.classList.remove('hidden');
+          populateStockLinkIdDatalist();
+          
+          const presetSelect = document.getElementById('alcoholPresetSelect');
+          if (presetSelect) presetSelect.selectedIndex = 0;
+        } else {
+          if (alcSpecs) alcSpecs.classList.add('hidden');
+        }
 
-        setTimeout(tryAutoGenerateId, 50);
+        // Ставим "- выбрать -" для статуса доступности
+        const availInput = document.getElementById('itemAvailableInput');
+        if (availInput) availInput.selectedIndex = 0;
+
+        const idBadge = document.getElementById('idAutoGeneratedBadge');
+
+        if (itemId) {
+          const item = category.items.find(i => i.id === itemId);
+          if (item) {
+            document.getElementById('itemModalTitle').innerText = `Редактировать: ${item.name}`;
+            
+            document.getElementById('itemIdInput').value = item.id;
+            document.getElementById('itemIdInput').disabled = true;
+            if (idBadge) {
+              idBadge.innerText = "Редактирование ID отключено";
+              idBadge.className = "text-[9px] text-brand-brown/50 font-bold";
+            }
+
+            document.getElementById('itemNameInput').value = item.name;
+            document.getElementById('itemPriceInput').value = item.price;
+            if (availInput) availInput.value = item.available ? "true" : "false";
+            document.getElementById('itemDescriptionInput').value = item.description || '';
+            
+            if (category.subcategories && category.subcategories.length > 0 && subcatSelect) {
+              subcatSelect.value = item.subcategory || "";
+            }
+
+            if (catId === 'alcohol') {
+              document.getElementById('itemPortionWeightInput').value = item.portionWeight !== undefined ? item.portionWeight : 1;
+              document.getElementById('itemStockLinkIdInput').value = item.stockLinkId || '';
+              
+              const pWeight = item.portionWeight;
+              const sub = item.subcategory;
+              const presetSelect = document.getElementById('alcoholPresetSelect');
+              if (presetSelect) {
+                if (pWeight === 1) presetSelect.value = 'glass';
+                else if (pWeight === 6 && sub === 'sparkling') presetSelect.value = 'sparkling';
+                else if (pWeight === 5 && sub === 'still') presetSelect.value = 'still';
+                else presetSelect.value = "";
+              }
+            }
+          }
+        } else {
+          document.getElementById('itemModalTitle').innerText = `Новая позиция в "${category.title}"`;
+          document.getElementById('itemIdInput').value = '';
+          document.getElementById('itemIdInput').disabled = false;
+          if (idBadge) {
+            idBadge.innerText = "Автогенерация включена";
+            idBadge.className = "text-[9px] text-green-600 font-bold";
+          }
+
+          document.getElementById('itemPortionWeightInput').value = 1;
+          document.getElementById('itemStockLinkIdInput').value = '';
+
+          setTimeout(tryAutoGenerateId, 50);
+        }
+
+        if (modal) modal.classList.remove('hidden');
+      } catch (error) {
+        console.error("Ошибка при открытии окна редактирования/добавления:", error);
+        showToast(`Ошибка открытия формы: ${error.message}`, 'error');
       }
-
-      modal.classList.remove('hidden');
     }
 
     function closeItemModal() {
@@ -1189,57 +1211,64 @@
     }
 
     function tryAutoGenerateId() {
-      const editItemId = document.getElementById('formItemId').value;
-      if (editItemId) return;
+      try {
+        const editItemId = document.getElementById('formItemId').value;
+        if (editItemId) return;
 
-      const catId = document.getElementById('formCategoryId').value;
-      const subcatVal = document.getElementById('itemSubcategoryInput').value;
-      const idInput = document.getElementById('itemIdInput');
+        const catId = document.getElementById('formCategoryId').value;
+        const subcatSelect = document.getElementById('itemSubcategoryInput');
+        const subcatVal = subcatSelect ? subcatSelect.value : '';
+        const idInput = document.getElementById('itemIdInput');
+        if (!idInput) return;
 
-      let generatedId = '';
+        let generatedId = '';
 
-      if (catId === 'alcohol') {
-        const preset = document.getElementById('alcoholPresetSelect').value;
-        
-        if (subcatVal === 'sparkling') {
-          if (preset === 'glass') {
-            generatedId = getNextIdForPrefix('alc_10', true);
+        if (catId === 'alcohol') {
+          const presetSelect = document.getElementById('alcoholPresetSelect');
+          const preset = presetSelect ? presetSelect.value : '';
+          
+          if (subcatVal === 'sparkling') {
+            if (preset === 'glass') {
+              generatedId = getNextIdForPrefix('alc_10', true);
+            } else {
+              generatedId = getNextIdForPrefix('alc_30', true);
+            }
+          } else if (subcatVal === 'still') {
+            if (preset === 'glass') {
+              generatedId = getNextIdForPrefix('alc_20', true);
+            } else {
+              generatedId = getNextIdForPrefix('alc_40', true);
+            }
+          } else if (subcatVal === 'strong') {
+            generatedId = getNextIdForPrefix('alc_50', true);
           } else {
-            generatedId = getNextIdForPrefix('alc_30', true);
+            generatedId = getNextIdForPrefix('alc_', false);
           }
-        } else if (subcatVal === 'still') {
-          if (preset === 'glass') {
-            generatedId = getNextIdForPrefix('alc_20', true);
+        } else if (catId === 'non-alcohol') {
+          if (subcatVal === 'hot') {
+            generatedId = getNextIdForPrefix('hot_', false);
+          } else if (subcatVal === 'juices_water') {
+            generatedId = getNextIdForPrefix('nalc_', false);
           } else {
-            generatedId = getNextIdForPrefix('alc_40', true);
+            generatedId = getNextIdForPrefix('nalc_', false);
           }
-        } else if (subcatVal === 'strong') {
-          generatedId = getNextIdForPrefix('alc_50', true);
+        } else if (catId === 'snacks') {
+          generatedId = getNextIdForPrefix('snack_', false);
+        } else if (catId === 'salads') {
+          generatedId = getNextIdForPrefix('salad_', false);
+        } else if (catId === 'bakery') {
+          generatedId = getNextIdForPrefix('bake_', false);
+        } else if (catId === 'desserts') {
+          generatedId = getNextIdForPrefix('des_', false);
         } else {
-          generatedId = getNextIdForPrefix('alc_', false);
+          generatedId = catId + '_' + Date.now().toString().slice(-4);
         }
-      } else if (catId === 'non-alcohol') {
-        if (subcatVal === 'hot') {
-          generatedId = getNextIdForPrefix('hot_', false);
-        } else if (subcatVal === 'juices_water') {
-          generatedId = getNextIdForPrefix('nalc_', false);
-        } else {
-          generatedId = getNextIdForPrefix('nalc_', false);
-        }
-      } else if (catId === 'snacks') {
-        generatedId = getNextIdForPrefix('snack_', false);
-      } else if (catId === 'salads') {
-        generatedId = getNextIdForPrefix('salad_', false);
-      } else if (catId === 'bakery') {
-        generatedId = getNextIdForPrefix('bake_', false);
-      } else if (catId === 'desserts') {
-        generatedId = getNextIdForPrefix('des_', false);
-      } else {
-        generatedId = catId + '_' + Date.now().toString().slice(-4);
-      }
 
-      if (generatedId) {
-        idInput.value = generatedId;
+        if (generatedId) {
+          idInput.value = generatedId;
+        }
+      } catch (error) {
+        console.error("Ошибка при автогенерации ID:", error);
       }
     }
 
@@ -1279,7 +1308,6 @@
       tryAutoGenerateId();
     }
 
-    // --- Валидация и Сохранение Позиции (Пункт 3) ---
     function saveItem(event) {
       event.preventDefault();
 
@@ -1319,7 +1347,7 @@
         errFields.push(idInput);
       }
 
-      // 2. Валидация выпадающего списка "Статус доступности" (должен быть выбран отличным от "")
+      // 2. Валидация выпадающего списка "Статус доступности"
       if (availableInput.value === "") {
         errors.push('Выберите статус доступности позиции.');
         errFields.push(availableInput);
@@ -1350,7 +1378,6 @@
 
       // Если обнаружены ошибки валидации
       if (errors.length > 0) {
-        // Подсвечиваем ошибочные поля красной границей
         errFields.forEach(field => {
           field.classList.remove('border-brand-brown/20');
           field.classList.add('border-red-500', 'ring-2', 'ring-red-100');
@@ -1362,7 +1389,7 @@
         alertText.innerText = errors[0]; // Показываем первую критическую ошибку
         alertContainer.classList.remove('hidden');
         
-        // Скроллим форму к началу, чтобы пользователь увидел блок ошибки
+        // Скроллим форму к началу
         document.getElementById('itemModal').querySelector('div').scrollTop = 0;
         
         showToast('Пожалуйста, исправьте ошибки заполнения формы', 'error');
