@@ -20,7 +20,7 @@
               peach: '#C7886B',     // Терракота
               dark: '#1F1713',      // Темный шоколад
               brown: '#604539',     // Шоколадно-коричневый
-              cream: '#FFECD2',     // -бежевый
+              cream: '#FFECD2',     // Кремово-бежевый
               creamLight: '#FFF8EE',// Очень светлый бежевый
             }
           }
@@ -198,7 +198,7 @@
         <!-- Поле 1: Виртуальный подраздел (Subcategory) - Позиционирован самым первым -->
         <div id="subcategorySelectorWrapper" class="hidden">
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Виртуальный подраздел (Subcategory)</label>
-          <select id="itemSubcategoryInput" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold">
+          <select id="itemSubcategoryInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach focus:border-brand-peach bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer hover:border-brand-peach/40">
             <!-- Опции подставляются JS -->
           </select>
         </div>
@@ -224,9 +224,10 @@
 
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Статус доступности</label>
-            <select id="itemAvailableInput" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white font-bold text-xs">
-              <option value="true">В наличии (доступен к заказу)</option>
-              <option value="false">В стоп-листе (скрыт у гостей)</option>
+            <select id="itemAvailableInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach focus:border-brand-peach bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer hover:border-brand-peach/40">
+              <option value="" disabled selected>Не выбрано</option>
+              <option value="true">В наличии</option>
+              <option value="false">Стоп-лист</option>
             </select>
           </div>
         </div>
@@ -240,11 +241,11 @@
 
           <div>
             <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон порций:</label>
-            <select id="alcoholPresetSelect" onchange="applyAlcoholPresetDropdown(this.value)" class="w-full px-3 py-2 rounded-lg border border-brand-peach/30 bg-white font-bold text-xs focus:ring-1 focus:ring-brand-peach focus:outline-none text-brand-dark">
-              <option value="">-- Выберите шаблон порций --</option>
-              <option value="glass">Бокал (1 порция)</option>
-              <option value="sparkling">Игристое вино (Бутылка = 6 порций)</option>
-              <option value="still">Тихое вино (Бутылка = 5 порций)</option>
+            <select id="alcoholPresetSelect" onchange="applyAlcoholPresetDropdown(this.value)" class="w-full px-3 py-2.5 rounded-xl border border-brand-peach/30 bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-peach hover:border-brand-peach/50">
+              <option value="" disabled selected>Не выбрано</option>
+              <option value="glass">Бокал</option>
+              <option value="sparkling">Игристое вино</option>
+              <option value="still">Тихое вино</option>
             </select>
           </div>
 
@@ -583,6 +584,16 @@
         activeExpandedCategoryId = catId; // Разворачиваем выбранный, все остальные автоматически свернутся
       }
       renderMenuTree();
+
+      // Фокусировка экрана на начале открытой категории
+      if (activeExpandedCategoryId === catId) {
+        setTimeout(() => {
+          const targetCard = document.getElementById(`category-card-${catId}`);
+          if (targetCard) {
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 80);
+      }
     }
 
     // --- Отрисовка дерева меню ---
@@ -618,7 +629,8 @@
         const isExpanded = category.id === activeExpandedCategoryId || (query !== ''); // При поиске принудительно разворачиваем
 
         const categoryCard = document.createElement('div');
-        categoryCard.className = "bg-white rounded-2xl border border-brand-brown/10 shadow-sm overflow-hidden animate-slide-in";
+        categoryCard.id = `category-card-${category.id}`;
+        categoryCard.className = "bg-white rounded-2xl border border-brand-brown/10 shadow-sm overflow-hidden animate-slide-in scroll-mt-20";
         
         let subcategoriesCount = category.subcategories ? category.subcategories.length : 0;
         let subcatsBadgeMarkup = subcategoriesCount > 0 
@@ -932,13 +944,23 @@
       const subcatSelect = document.getElementById('itemSubcategoryInput');
       subcatSelect.innerHTML = '';
 
+      // Генерация выпадающего списка подразделов с "Не выбрано" по умолчанию
       if (category.subcategories && category.subcategories.length > 0) {
         subSelectorWrapper.classList.remove('hidden');
         
-        const emptyOpt = document.createElement('option');
-        emptyOpt.value = '';
-        emptyOpt.innerText = '-- Без подраздела --';
-        subcatSelect.appendChild(emptyOpt);
+        // "Не выбрано" как первая неактивная заглушка для нового элемента
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.disabled = true;
+        defaultOpt.selected = true;
+        defaultOpt.innerText = 'Не выбрано';
+        subcatSelect.appendChild(defaultOpt);
+
+        // Опция "Без подраздела" для сохранения чистого вывода
+        const noneOpt = document.createElement('option');
+        noneOpt.value = 'none';
+        noneOpt.innerText = '-- Без подраздела --';
+        subcatSelect.appendChild(noneOpt);
 
         category.subcategories.forEach(sub => {
           const opt = document.createElement('option');
@@ -950,11 +972,11 @@
         subSelectorWrapper.classList.add('hidden');
       }
 
+      // Настройка блока алкоголя
       const alcSpecs = document.getElementById('alcoholSpecsWrapper');
       if (catId === 'alcohol') {
         alcSpecs.classList.remove('hidden');
         populateStockLinkIdDatalist();
-        document.getElementById('alcoholPresetSelect').value = '';
       } else {
         alcSpecs.classList.add('hidden');
       }
@@ -962,6 +984,7 @@
       const idBadge = document.getElementById('idAutoGeneratedBadge');
 
       if (itemId) {
+        // РЕДАКТИРОВАНИЕ ПОЗИЦИИ
         const item = category.items.find(i => i.id === itemId);
         document.getElementById('itemModalTitle').innerText = `Редактировать: ${item.name}`;
         
@@ -976,7 +999,7 @@
         document.getElementById('itemDescriptionInput').value = item.description || '';
         
         if (category.subcategories && category.subcategories.length > 0) {
-          subcatSelect.value = item.subcategory || '';
+          subcatSelect.value = item.subcategory || 'none';
         }
 
         if (catId === 'alcohol') {
@@ -992,18 +1015,21 @@
           else presetSelect.value = '';
         }
       } else {
+        // СОЗДАНИЕ ПОЗИЦИИ
         document.getElementById('itemModalTitle').innerText = `Новая позиция в "${category.title}"`;
         document.getElementById('itemIdInput').value = '';
         document.getElementById('itemIdInput').disabled = false;
         idBadge.innerText = "Автогенерация включена";
         idBadge.className = "text-[9px] text-green-600 font-bold";
 
-        document.getElementById('itemAvailableInput').value = "true";
+        // По умолчанию выпадающие списки сбрасываются в "Не выбрано"
+        document.getElementById('itemAvailableInput').value = "";
         document.getElementById('itemPortionWeightInput').value = 1;
         document.getElementById('itemStockLinkIdInput').value = '';
+        document.getElementById('alcoholPresetSelect').value = "";
         
         if (category.subcategories && category.subcategories.length > 0) {
-          subcatSelect.value = category.subcategories[0].id;
+          subcatSelect.value = "";
         }
 
         setTimeout(tryAutoGenerateId, 50);
@@ -1175,7 +1201,13 @@
       const idInput = document.getElementById('itemIdInput').value.trim().toLowerCase();
       const nameInput = document.getElementById('itemNameInput').value.trim();
       const priceInput = Number(document.getElementById('itemPriceInput').value);
-      const availableInput = document.getElementById('itemAvailableInput').value === "true";
+      
+      const availSelectValue = document.getElementById('itemAvailableInput').value;
+      if (!availSelectValue) {
+        alert('Пожалуйста, выберите статус доступности позиции!');
+        return;
+      }
+      const availableInput = availSelectValue === "true";
       const descriptionInput = document.getElementById('itemDescriptionInput').value.trim();
       
       const category = menuData.categories.find(c => c.id === catId);
@@ -1192,8 +1224,14 @@
       }
 
       const subcatSelect = document.getElementById('itemSubcategoryInput');
-      if (category.subcategories && category.subcategories.length > 0 && subcatSelect.value) {
-        itemPayload.subcategory = subcatSelect.value;
+      if (category.subcategories && category.subcategories.length > 0) {
+        if (!subcatSelect.value) {
+          alert('Пожалуйста, выберите подраздел или укажите "Без подраздела"!');
+          return;
+        }
+        if (subcatSelect.value !== 'none') {
+          itemPayload.subcategory = subcatSelect.value;
+        }
       }
 
       if (catId === 'alcohol') {
