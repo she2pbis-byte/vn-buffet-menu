@@ -198,7 +198,7 @@
         <!-- Поле 1: Виртуальный подраздел (Subcategory) - Позиционирован самым первым -->
         <div id="subcategorySelectorWrapper" class="hidden">
           <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Виртуальный подраздел (Subcategory)</label>
-          <select id="itemSubcategoryInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach focus:border-brand-peach bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer hover:border-brand-peach/40">
+          <select id="itemSubcategoryInput" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach focus:border-brand-peach bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer hover:border-brand-peach/40">
             <!-- Опции подставляются JS -->
           </select>
         </div>
@@ -225,8 +225,8 @@
           <div>
             <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Статус доступности</label>
             <select id="itemAvailableInput" required class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach focus:border-brand-peach bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer hover:border-brand-peach/40">
-              <option value="" disabled selected>Не выбрано</option>
-              <option value="true">В наличии</option>
+              <option value="" disabled>Не выбрано</option>
+              <option value="true" selected>В наличии</option>
               <option value="false">Стоп-лист</option>
             </select>
           </div>
@@ -242,7 +242,7 @@
           <div>
             <label class="block text-[9px] font-bold text-brand-brown/80 uppercase mb-1">Быстрый шаблон порций:</label>
             <select id="alcoholPresetSelect" onchange="applyAlcoholPresetDropdown(this.value)" class="w-full px-3 py-2.5 rounded-xl border border-brand-peach/30 bg-white font-bold text-xs text-brand-dark transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-brand-peach hover:border-brand-peach/50">
-              <option value="" disabled selected>Не выбрано</option>
+              <option value="" selected>Не выбрано</option>
               <option value="glass">Бокал</option>
               <option value="sparkling">Игристое вино</option>
               <option value="still">Тихое вино</option>
@@ -793,6 +793,7 @@
       modal.classList.remove('hidden');
     }
 
+    // --- Закрытие окон ---
     function closeCategoryModal() {
       document.getElementById('categoryModal').classList.add('hidden');
     }
@@ -1022,14 +1023,14 @@
         idBadge.innerText = "Автогенерация включена";
         idBadge.className = "text-[9px] text-green-600 font-bold";
 
-        // По умолчанию выпадающие списки сбрасываются в "Не выбрано"
-        document.getElementById('itemAvailableInput').value = "";
+        // Заполняем по умолчанию разумными дефолтными значениями
+        document.getElementById('itemAvailableInput').value = "true"; // По умолчанию — в наличии
         document.getElementById('itemPortionWeightInput').value = 1;
         document.getElementById('itemStockLinkIdInput').value = '';
         document.getElementById('alcoholPresetSelect').value = "";
         
         if (category.subcategories && category.subcategories.length > 0) {
-          subcatSelect.value = "";
+          subcatSelect.value = ""; // Сбрасываем на "Не выбрано"
         }
 
         setTimeout(tryAutoGenerateId, 50);
@@ -1207,10 +1208,14 @@
         alert('Пожалуйста, выберите статус доступности позиции!');
         return;
       }
-      const availableInput = availSelectValue === "true";
+      const availableInput = (availSelectValue === "true");
       const descriptionInput = document.getElementById('itemDescriptionInput').value.trim();
       
       const category = menuData.categories.find(c => c.id === catId);
+      if (!category) {
+        alert('Категория не найдена!');
+        return;
+      }
       
       let itemPayload = {
         id: idInput,
@@ -1225,11 +1230,7 @@
 
       const subcatSelect = document.getElementById('itemSubcategoryInput');
       if (category.subcategories && category.subcategories.length > 0) {
-        if (!subcatSelect.value) {
-          alert('Пожалуйста, выберите подраздел или укажите "Без подраздела"!');
-          return;
-        }
-        if (subcatSelect.value !== 'none') {
+        if (subcatSelect.value && subcatSelect.value !== 'none') {
           itemPayload.subcategory = subcatSelect.value;
         }
       }
