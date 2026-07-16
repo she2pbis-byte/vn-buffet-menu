@@ -215,6 +215,30 @@
           <input type="text" id="itemDescriptionInput" placeholder="Пример: Крым, белое брют, 750 мл" class="w-full px-3 py-2.5 rounded-xl border border-brand-brown/20 focus:outline-none focus:ring-2 focus:ring-brand-peach bg-white text-xs">
         </div>
 
+        <!-- Поле добавления картинки -->
+        <div class="bg-brand-cream/40 border border-brand-brown/10 p-3 rounded-2xl space-y-2">
+          <label class="block text-[10px] font-black text-brand-brown uppercase mb-1">Изображение товара</label>
+          <div class="flex items-center gap-3">
+            <div id="itemImagePreviewContainer" class="w-14 h-14 rounded-xl bg-white border border-brand-brown/15 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <i id="itemImagePlaceholderIcon" data-lucide="image" class="w-6 h-6 text-brand-brown/30"></i>
+              <img id="itemImagePreview" class="w-full h-full object-cover hidden" alt="Превью товара">
+            </div>
+            <div class="flex-1">
+              <input type="file" id="itemImageFileInput" accept="image/*" class="hidden" onchange="handleImageFileChange(this)">
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="document.getElementById('itemImageFileInput').click()" class="bg-white border border-brand-brown/20 hover:bg-brand-cream text-brand-brown px-3 py-1.5 rounded-lg text-[10px] font-bold transition">
+                  Выбрать файл
+                </button>
+                <button type="button" id="deleteImageBtn" onclick="clearSelectedImage()" class="hidden bg-red-50 hover:bg-red-100 text-red-500 px-3 py-1.5 rounded-lg text-[10px] font-bold border border-red-200 transition">
+                  Удалить
+                </button>
+              </div>
+              <p class="text-[9px] text-brand-brown/60 mt-1">Рекомендуется квадратное фото. Мы автоматически сожмем его для мгновенной загрузки.</p>
+            </div>
+          </div>
+          <input type="hidden" id="itemImagePathInput">
+        </div>
+
         <!-- Поле 4: Цена и статус доступности -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -379,6 +403,10 @@
     let githubSha = null;
     let isSaving = false;
 
+    // Временные переменные для хранения выбранной картинки
+    let tempImageBase64 = null;
+    let tempImageExt = null;
+
     // Состояние свернутости/развернутости разделов (Аккордеон: изначально все свернуты)
     let activeExpandedCategoryId = '';
 
@@ -434,6 +462,8 @@
     function updateSyncIndicator(color, text) {
       const indicator = document.getElementById('syncIndicator');
       const textSpan = document.getElementById('syncText');
+      
+      if (!indicator || !textSpan) return;
       
       indicator.className = "w-2 h-2 rounded-full animate-pulse flex-shrink-0";
       if (color === 'green') {
@@ -546,6 +576,114 @@
       } finally {
         isSaving = false;
       }
+    }
+
+    // --- Умное сжатие картинки на Canvas ---
+    function handleImageFileChange(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Ресайзим до 400px для мгновенной загрузки в вебе
+          const maxDim = 400;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Экспортируем в качественный сжатый JPG
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          
+          tempImageBase64 = compressedDataUrl.split(',')[1];
+          tempImageExt = 'jpg';
+          
+          const preview = document.getElementById('itemImagePreview');
+          const placeholder = document.getElementById('itemImagePlaceholderIcon');
+          const delBtn = document.getElementById('deleteImageBtn');
+          
+          preview.src = compressedDataUrl;
+          preview.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+          delBtn.classList.remove('hidden');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearSelectedImage() {
+      document.getElementById('itemImageFileInput').value = '';
+      document.getElementById('itemImagePathInput').value = '';
+      const preview = document.getElementById('itemImagePreview');
+      const placeholder = document.getElementById('itemImagePlaceholderIcon');
+      const delBtn = document.getElementById('deleteImageBtn');
+      
+      preview.src = '';
+      preview.classList.add('hidden');
+      placeholder.classList.remove('hidden');
+      delBtn.classList.add('hidden');
+      
+      tempImageBase64 = null;
+      tempImageExt = null;
+    }
+
+    // Загрузка готовой картинки в репозиторий GitHub
+    async function uploadImageToGitHub(base64Data, filename) {
+      const token = localStorage.getItem('github_pat');
+      if (!token) return null;
+      
+      const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/images/${filename}`;
+      const headers = { 'Authorization': `token ${token}` };
+      
+      let sha = null;
+      try {
+        const checkRes = await fetch(url, { headers });
+        if (checkRes.ok) {
+          const checkData = await checkRes.json();
+          sha = checkData.sha;
+        }
+      } catch (e) {
+        console.log("Картинка еще не загружалась ранее, будет записана заново.");
+      }
+      
+      const body = {
+        message: `Редактор меню: Загрузка изображения ${filename}`,
+        content: base64Data,
+        branch: GITHUB_BRANCH
+      };
+      if (sha) body.sha = sha;
+      
+      const uploadRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      
+      if (!uploadRes.ok) {
+        throw new Error(`Ошибка загрузки картинки на GitHub: ${uploadRes.status}`);
+      }
+      
+      return `images/${filename}`;
     }
 
     // --- Обновление визуального представления и синхронизация ---
@@ -731,17 +869,28 @@
               `;
             }
 
+            // Маленькое квадратное превью товара слева от контента
+            let imageMarkup = '';
+            if (item.image) {
+              imageMarkup = `
+                <img src="${item.image}?t=${Date.now()}" class="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-brand-brown/10 shadow-sm" alt="${item.name}" onerror="this.style.display='none'">
+              `;
+            }
+
             itemElement.innerHTML = `
-              <div class="space-y-1">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <h4 class="text-xs font-extrabold text-brand-dark leading-snug">${item.name}</h4>
-                  ${subcategoryLabel}
-                  ${!item.available ? '<span class="bg-red-100 text-red-800 border border-red-200 rounded px-1.5 py-0.2 text-[8px] font-black uppercase">Стоп-лист</span>' : ''}
+              <div class="flex gap-3 items-start min-w-0 flex-1">
+                ${imageMarkup}
+                <div class="space-y-1 min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <h4 class="text-xs font-extrabold text-brand-dark leading-snug truncate" title="${item.name}">${item.name}</h4>
+                    ${subcategoryLabel}
+                    ${!item.available ? '<span class="bg-red-100 text-red-800 border border-red-200 rounded px-1.5 py-0.2 text-[8px] font-black uppercase">Стоп-лист</span>' : ''}
+                  </div>
+                  ${item.description ? `<p class="text-[10px] text-brand-brown/70 leading-relaxed">${item.description}</p>` : ''}
+                  <div class="text-[11px] font-black text-brand-peach mt-1">${item.price} ₽</div>
+                  ${portionMeta}
+                  <div class="text-[9px] text-brand-brown/40 font-mono">ID: ${item.id}</div>
                 </div>
-                ${item.description ? `<p class="text-[10px] text-brand-brown/70 leading-relaxed">${item.description}</p>` : ''}
-                <div class="text-[11px] font-black text-brand-peach mt-1">${item.price} ₽</div>
-                ${portionMeta}
-                <div class="text-[9px] text-brand-brown/40 font-mono">ID: ${item.id}</div>
               </div>
 
               <div class="flex items-center gap-1 flex-shrink-0">
@@ -936,6 +1085,9 @@
       const form = document.getElementById('itemForm');
       form.reset();
 
+      // Очистка полей картинок перед открытием
+      clearSelectedImage();
+
       document.getElementById('formCategoryId').value = catId;
       document.getElementById('formItemId').value = itemId || '';
       
@@ -1003,6 +1155,19 @@
           subcatSelect.value = item.subcategory || 'none';
         }
 
+        // Подгрузка картинки при редактировании
+        if (item.image) {
+          document.getElementById('itemImagePathInput').value = item.image;
+          const preview = document.getElementById('itemImagePreview');
+          const placeholder = document.getElementById('itemImagePlaceholderIcon');
+          const delBtn = document.getElementById('deleteImageBtn');
+          
+          preview.src = item.image + '?t=' + Date.now();
+          preview.classList.remove('hidden');
+          placeholder.classList.add('hidden');
+          delBtn.classList.remove('hidden');
+        }
+
         if (catId === 'alcohol') {
           document.getElementById('itemPortionWeightInput').value = item.portionWeight !== undefined ? item.portionWeight : 1;
           document.getElementById('itemStockLinkIdInput').value = item.stockLinkId || '';
@@ -1037,6 +1202,7 @@
       }
 
       modal.classList.remove('hidden');
+      lucide.createIcons();
     }
 
     function closeItemModal() {
@@ -1193,7 +1359,7 @@
       tryAutoGenerateId();
     }
 
-    function saveItem(event) {
+    async function saveItem(event) {
       event.preventDefault();
 
       const catId = document.getElementById('formCategoryId').value;
@@ -1216,59 +1382,91 @@
         alert('Категория не найдена!');
         return;
       }
-      
-      let itemPayload = {
-        id: idInput,
-        name: nameInput,
-        price: priceInput,
-        available: availableInput,
-      };
 
-      if (descriptionInput) {
-        itemPayload.description = descriptionInput;
-      }
+      // Блокировка кнопки сохранения во время отправки изображений
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="animate-spin inline-block mr-1">🌀</span> Сохранение...';
 
-      const subcatSelect = document.getElementById('itemSubcategoryInput');
-      if (category.subcategories && category.subcategories.length > 0) {
-        if (subcatSelect.value && subcatSelect.value !== 'none') {
-          itemPayload.subcategory = subcatSelect.value;
-        }
-      }
+      try {
+        let imagePath = document.getElementById('itemImagePathInput').value.trim();
 
-      if (catId === 'alcohol') {
-        const portionWeight = parseInt(document.getElementById('itemPortionWeightInput').value, 10);
-        const stockLinkId = document.getElementById('itemStockLinkIdInput').value.trim();
-
-        itemPayload.portionWeight = isNaN(portionWeight) ? 1 : portionWeight;
-        if (stockLinkId) {
-          itemPayload.stockLinkId = stockLinkId;
-        }
-      }
-
-      if (editItemId) {
-        const index = category.items.findIndex(i => i.id === editItemId);
-        if (index !== -1) {
-          category.items[index] = itemPayload;
-        }
-      } else {
-        let isDuplicate = false;
-        menuData.categories.forEach(c => {
-          if (c.items && c.items.some(i => i.id === idInput)) {
-            isDuplicate = true;
+        // Если была выбрана новая картинка — грузим ее на GitHub
+        if (tempImageBase64) {
+          const filename = `${idInput}.${tempImageExt}`;
+          updateSyncIndicator('amber', 'Загрузка изображения...');
+          const uploadedResult = await uploadImageToGitHub(tempImageBase64, filename);
+          if (uploadedResult) {
+            imagePath = uploadedResult;
           }
-        });
-
-        if (isDuplicate) {
-          alert('Товар с таким уникальным ID уже существует!');
-          return;
         }
 
-        if (!category.items) category.items = [];
-        category.items.push(itemPayload);
-      }
+        let itemPayload = {
+          id: idInput,
+          name: nameInput,
+          price: priceInput,
+          available: availableInput,
+        };
 
-      closeItemModal();
-      renderMenuTree();
+        if (descriptionInput) {
+          itemPayload.description = descriptionInput;
+        }
+
+        if (imagePath) {
+          itemPayload.image = imagePath;
+        }
+
+        const subcatSelect = document.getElementById('itemSubcategoryInput');
+        if (category.subcategories && category.subcategories.length > 0) {
+          if (subcatSelect.value && subcatSelect.value !== 'none') {
+            itemPayload.subcategory = subcatSelect.value;
+          }
+        }
+
+        if (catId === 'alcohol') {
+          const portionWeight = parseInt(document.getElementById('itemPortionWeightInput').value, 10);
+          const stockLinkId = document.getElementById('itemStockLinkIdInput').value.trim();
+
+          itemPayload.portionWeight = isNaN(portionWeight) ? 1 : portionWeight;
+          if (stockLinkId) {
+            itemPayload.stockLinkId = stockLinkId;
+          }
+        }
+
+        if (editItemId) {
+          const index = category.items.findIndex(i => i.id === editItemId);
+          if (index !== -1) {
+            category.items[index] = itemPayload;
+          }
+        } else {
+          let isDuplicate = false;
+          menuData.categories.forEach(c => {
+            if (c.items && c.items.some(i => i.id === idInput)) {
+              isDuplicate = true;
+            }
+          });
+
+          if (isDuplicate) {
+            alert('Товар с таким уникальным ID уже существует!');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            return;
+          }
+
+          if (!category.items) category.items = [];
+          category.items.push(itemPayload);
+        }
+
+        closeItemModal();
+        renderMenuTree();
+      } catch (err) {
+        console.error("Ошибка при сохранении позиции:", err);
+        alert(`Не удалось сохранить: ${err.message}`);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
+      }
     }
 
     function deleteItem(catId, itemId) {
